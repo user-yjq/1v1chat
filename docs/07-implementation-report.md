@@ -115,6 +115,19 @@
 - 风险触发：R-02（意图漏判/注入顺承）→ 已补规则；R-09（禁网）→ 真模型评测留给外部环境。
 - 遗留：真模型 4 人设走查与对抗报告人工评审（执行 `LLM_MODE=auto python tools/eval_adversarial.py`）。
 - 结论：✅（评测基建就绪；86 tests 绿 + ruff 0 + mock 冒烟 0 硬失败）
+- 日期：2026-09-05### RPT-M4-001：M4 阶段一 生产化缺口审计（T-15，2026-09-05）
+
+- 范围：T-15 第一阶段，仅做缺口审计与加固规划，不含加固实施（避免文档先行原则被破坏）。
+- 对照：01 NFR/披露口径、02 ADR-07/08/10、03 架构 §并发/§安全、04 WBS T-15；证据逐项指向源码文件。
+- 完成项：ACC-M4-T15-001~002。
+- 主要发现：
+  - P0×7：跨进程会话锁（pipeline 进程内存锁）、SQLite→PG 未切、无 Alembic、JWT_SECRET 占位未 fail-fast、无运行指标、无 CI 质量门、前端无“对面是 AI 实验”披露。
+  - 文档-代码漂移 3 例：02 ADR-07 声称已启用 SQLite WAL/busy_timeout 但 `backend/db/database.py` 未实现；
+    `.env.example` 残留 EMBEDDING/CHROMA 键且缺 engine2 全套键；版本号三处不一致（main.py 0.3.0-beta / 根 pyproject 0.3.0b0 / README v0.4.0-alpha）。
+  - 风险登记新增 R-10~R-13（占位 secret、多 worker 覆盖 state、版本漂移、SQLite 压测不可信）。
+- 决策建议：先评审 08 §4 的 NFR-PROD-1~5 与优先级，再按 08 §3 M4.1→M4.9 顺序实施；PG+Alembic 是多 worker 并发与压测的前置条件。
+- 遗留：M4.1~M4.9 加固均未开始；需需求方确认 01 NFR 增补与优先级后再开工。
+- 结论：✅（审计完成；本步无代码变更）
 - 日期：2026-09-05
 ---
 
