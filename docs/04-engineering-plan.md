@@ -64,7 +64,7 @@
 
 ## 5. 版本与发布策略
 
-- 版本：语义化；当前 `0.2.0`；M1 完成切 `0.3.0-beta`，M2 完成 `0.3.0`。
+- 版本：语义化；当前 `0.4.0-alpha`（运行时单源 `backend/version.py`）。已发布线：`v0.2.0` → `v0.3.0-beta` → `v0.4.0-alpha` → 目标 `v0.5.0`。
 - 分支：`main` 只合已验收代码；开发分支 `feat/engine2-<task>`；每个 task 一个 PR/commit 序列。
 - 标签：M0 打 `v0.2.0`（回滚点）；此后每个里程碑打 tag。
 - 回滚：`ENGINE_VERSION` 切回 v1 + 数据备份（`data/1v1chat.db` 快照）即可回滚。

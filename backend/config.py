@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./data/1v1chat.db"
 
     # 应用
+    APP_ENV: str = "dev"            # dev / prod（prod 触发 fail-fast 校验，见 validate_prod_settings）
     APP_HOST: str = "0.0.0.0"
     APP_PORT: int = 8000
     APP_DEBUG: bool = True
@@ -61,3 +62,28 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# 生产安全默认值校验（R-C1 / NFR-PROD-1：占位凭据不允许上线）
+_PLACEHOLDER_JWT = {"change-me", "change-me-in-production"}
+_PLACEHOLDER_KEY_PREFIXES = ("sk-placeholder", "sk-your")
+
+
+def validate_prod_settings(cfg: Settings | None = None) -> list[str]:
+    """APP_ENV=prod 时做 fail-fast 校验；返回问题列表（空列表 = 通过）。
+
+    非 prod 环境不做检查，保证开发/测试启动不被拦。
+    """
+    c = cfg or settings
+    if c.APP_ENV != "prod":
+        return []
+    problems: list[str] = []
+    jwt = (c.JWT_SECRET or "").strip()
+    if not jwt or jwt.lower() in _PLACEHOLDER_JWT or jwt.lower().startswith("change"):
+        problems.append("JWT_SECRET 仍是占位/默认值，prod 必须显式设置强随机 secret")
+    if (c.LLM_MODE or "").strip().lower() != "mock":
+        key = (c.DEEPSEEK_API_KEY or "").strip()
+        if not key or key.lower() in _PLACEHOLDER_JWT or key.lower().startswith(_PLACEHOLDER_KEY_PREFIXES):
+            problems.append("DEEPSEEK_API_KEY 缺失或为占位值，prod 必须显式设置真实 key（或显式 LLM_MODE=mock）")
+    if bool(c.APP_DEBUG):
+        problems.append("APP_DEBUG=True 不应在生产开启")
+    return problems

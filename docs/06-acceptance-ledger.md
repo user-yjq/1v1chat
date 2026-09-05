@@ -142,6 +142,12 @@
 |-----|------|--------|------|------|------|------|------|------|
 | ACC-M4-T15-001 | 评审 | T-15 缺口清单：6 类 31 项（P0×7/P1×13/P2×11）+ 加固顺序 + NFR 提案 + 风险 R-10~13 | 文档评审（逐项核对源码/配置文件证据） | 缺口可定位到证据、状态列齐全 | 完成 | docs/08-production-checklist.md | ✅ | 2026-09-05 |
 | ACC-M4-T15-002 | 一致性 | 看板同步：00 文档清单/版本行、04 里程碑/WBS/风险 | 交叉核对 00/04/08 | 无漂移 | 完成 | docs/00-README.md、docs/04-engineering-plan.md | ✅ | 2026-09-05 |
+| ACC-M4-T15-003 | 单测 | prod fail-fast：占位 JWT/key、APP_DEBUG 拦停、mock 豁免 | `pytest test_prod_safety.py` | 全绿 | 通过（7 passed） | config.validate_prod_settings + main lifespan | ✅ | 2026-09-05 |
+| ACC-M4-T15-004 | 单测 | 单版本源：version.py 被 main/health 引用，pyproject 同步由测试锁定 | 同上 | 全绿 | 通过 | backend/version.py + 同步断言 | ✅ | 2026-09-05 |
+| ACC-M4-T15-005 | 单测 | SQLite 文件引擎启用 WAL + busy_timeout=5000 | 同上 | 全绿 | 通过 | db/database.make_engine + PRAGMA | ✅ | 2026-09-05 |
+| ACC-M4-T15-006 | 配置 | .env.example 25 键与 config.py 对齐；compose 注入 engine2 核心键 | 配置对照 | 一致 | 完成 | .env.example、docker-compose.yml | ✅ | 2026-09-05 |
+| ACC-M4-T15-007 | 工程 | CI 质量门 workflow（backend lint+test / frontend build） | 语法审阅 | 可运行 | 待 GitHub 远端验证 | .github/workflows/ci.yml | 🚧 | 2026-09-05 |
+| ACC-M4-REG-001 | 单测 | 全量回归 | `pytest backend` | 93 passed | 93 passed in 2.12s | 测试输出 | ✅ | 2026-09-05 |
 
 ## 6. 后续登记区
 

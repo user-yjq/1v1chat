@@ -28,7 +28,7 @@
 |----|------|--------------|----------|--------|------|----------|
 | R-B1 | 仍是 SQLite，未切 PostgreSQL | `backend/config.py DATABASE_URL` 默认 sqlite；02 ADR-07 明确生产候选 PG | 引入 PG 连接（连接池/重试），SQLite 仅 dev 与 CI | P0 | ⏸ | 全量测试在 PG 上通过；E2E 通过 |
 | R-B2 | 无迁移工具 | `backend/db/database.py init_db()` 用 `create_all`；schema 演进不可回滚 | 引入 Alembic：基线迁移 + 后续变更走版本迁移；容器启动跑 `upgrade head` | P0 | ⏸ | 从空库/旧库升级两种路径验收 |
-| R-B3 | SQLite WAL/busy_timeout 未启用，与文档不符 | 02 ADR-07 声称已启用；`backend/db/database.py` 无 PRAGMA | 开发库补 `journal_mode=WAL`+`busy_timeout`（文档与代码对齐） | P2 | ⏸ | 并发写不报 database is locked |
+| R-B3 | SQLite WAL/busy_timeout 未启用，与文档不符 | 02 ADR-07 声称已启用；`backend/db/database.py` 无 PRAGMA | 开发库补 `journal_mode=WAL`+`busy_timeout`（文档与代码对齐） | P2 | ✅ | 单测断言 WAL/busy_timeout=5000 |
 | R-B4 | 会话 state 迁移无版本化流程 | `engine2/schema.normalize_state` 容忍旧数据，但 schema 演进策略未定义 | 定义 state v2→v3 的迁移清单与灰度策略（旧会话可降级/迁移脚本） | P2 | ⏸ | 迁移演练记录 |
 | R-B5 | 消息查询无联合索引/分页 | `models/database.Message` 仅 `sent_at` 索引；`routers/conversation.py` 用 `.limit()` 无游标 | 加 `(conversation_id, sent_at)` 联合索引；消息列表改游标分页 | P2 | ⏸ | 万级消息会话接口 p95 达标 |
 | R-B6 | 无备份/恢复与数据保留策略 | 仅 `docker-compose` 卷挂 `data/`；无备份脚本/演练 | 增加 PG 备份（pg_dump）+ 恢复演练；定义聊天数据保留/归档策略 | P1 | ⏸ | 恢复演练报告 |
@@ -38,7 +38,7 @@
 
 | ID | 缺口 | 现状（证据） | 加固建议 | 优先级 | 状态 | 验收方式 |
 |----|------|--------------|----------|--------|------|----------|
-| R-C1 | JWT_SECRET 等生产敏感默认值未拦截 | `backend/config.py` 默认 `change-me`；`docker-compose.yml` 默认 `change-me-in-production` | 启动 fail-fast：`APP_ENV=prod` 时检测占位 secret/空 key 直接拒绝启动 | P0 | ⏸ | 单测：占位 secret 启动报错 |
+| R-C1 | JWT_SECRET 等生产敏感默认值未拦截 | `backend/config.py` 默认 `change-me`；`docker-compose.yml` 默认 `change-me` | 启动 fail-fast：`APP_ENV=prod` 时检测占位 secret/空 key 直接拒绝启动 | P0 | ✅ | 单测：占位 secret 被拦（test_prod_safety.py） |
 | R-C2 | 登录/注册无防爆破 | `backend/routers/auth.py` 无限流/锁定 | 登录失败限流 + 账户临时锁定；注册接口人机校验（阶段量级） | P1 | ⏸ | 暴力尝试被 429/锁定 |
 | R-C3 | JWT 无刷新/撤销 | `core/security.py` 仅签发 HS256 access token | 短期 access + refresh（可撤销白名单）；或改 httpOnly cookie 会话 | P2 | ⏸ | 退出后旧 token 失效 |
 | R-C4 | CORS/同源策略需按环境注入 | CORS 白名单已配置化（T-13），但生产同源（nginx 反代）时需验证无 `*` 且无多余源 | compose/CI 显式注入 `CORS_ORIGINS`；提供环境校验测试 | P1 | ⏸ | 生产配置无 `*`+credentials |
@@ -59,9 +59,9 @@
 
 | ID | 缺口 | 现状（证据） | 加固建议 | 优先级 | 状态 | 验收方式 |
 |----|------|--------------|----------|--------|------|----------|
-| R-E1 | 无 CI 质量门 | 仓库无 `.github/`（或等价 CI） | 加 CI：pytest 全绿 + ruff 0 + 前端 build + 镜像构建冒烟（mock 模式 E2E 脚本） | P0 | ⏸ | PR 合入门禁生效 |
-| R-E2 | 版本号三处漂移 | `backend/main.py` 0.3.0-beta / 根 `pyproject.toml` 0.3.0b0 / README v0.4.0-alpha | 单一版本源（如 `backend/appmeta.py`），main/pyproject/health/docs 引用它 | P1 | ⏸ | 改一处全同步 |
-| R-E3 | .env.example 与 compose 键过期/不全 | `.env.example` 残留 EMBEDDING/CHROMA；缺 engine2 全套键（ENGINE_VERSION/LLM_MODE/GUARD_*…）；compose 未注入新键 | 重写 .env.example 覆盖全部配置项；compose 显式传 ENGINE_VERSION、LLM_MODE、CORS_ORIGINS、GUARD_* | P1 | ⏸ | 文档键与 config.py 全量对照一致 |
+| R-E1 | 无 CI 质量门 | 仓库无 `.github/`（或等价 CI） | 加 CI：pytest 全绿 + ruff 0 + 前端 build + 镜像构建冒烟（mock 模式 E2E 脚本） | P0 | 🚧 | workflow 已提交，待 GitHub Actions 实跑 |
+| R-E2 | 版本号三处漂移 | `backend/main.py` 0.3.0-beta / 根 `pyproject.toml` 0.3.0b0 / README v0.4.0-alpha | 单一版本源（`backend/version.py`），pyproject 由测试锁同步 | P1 | ✅ | 单测断言 pyproject==version.py |
+| R-E3 | .env.example 与 compose 键过期/不全 | `.env.example` 残留 EMBEDDING/CHROMA；缺 engine2 全套键（ENGINE_VERSION/LLM_MODE/GUARD_*…）；compose 未注入新键 | 重写 .env.example 覆盖全部配置项；compose 显式传 ENGINE_VERSION、LLM_MODE、GUARD_* | P1 | ✅ | .env.example 25 键与 config.py 对照；compose 注入核心键 |
 | R-E4 | 默认仍跑 v1 引擎 | `backend/config.py ENGINE_VERSION="v1"` | v0.5 验收后默认切 v2，v1 移 `_legacy/`（04 §发布策略） | P1 | ⏸ | 双引擎回归 + 一键回滚演练 |
 | R-E5 | 镜像/容器待加固 | backend Dockerfile 以 root 运行、无 DB readiness；nginx 含未使用的 `/ws/` 代理 | 非 root 用户、健康探测对齐 readiness、清理死代理配置 | P2 | ⏸ | 容器扫描 + 手工验收 |
 | R-E6 | Makefile/说明与依赖现状不符 | Makefile 引用不存在的 `requirements-py310.txt`、注释残留 langgraph/chromadb | 修正脚本与注释；锁定单一依赖入口（pyproject+uv lock） | P2 | ⏸ | `make install/test/lint/docker-up` 全通 |
@@ -94,9 +94,9 @@
 
 | ID | 提案项 | 指标/约束 | 对应缺口 |
 |----|--------|-----------|----------|
-| NFR-PROD-1 | 生产配置安全 | `APP_ENV=prod` 时占位 secret/空 key 启动即失败 | R-C1 |
+| NFR-PROD-1 | 生产配置安全 | `APP_ENV=prod` 时占位 secret/空 key 启动即失败（已实现，见 R-C1） | R-C1 |
 | NFR-PROD-2 | 多进程一致性 | 同一会话消息跨 worker 仍串行、不丢不乱 | R-A1 |
-| NFR-PROD-3 | 质量门 | 每次合入：pytest 全绿 + ruff 0 + 前端 build + mock E2E | R-E1 |
+| NFR-PROD-3 | 质量门 | 每次合入：pytest 全绿 + ruff 0 + 前端 build + mock E2E（workflow 已加，待远端验证） | R-E1 |
 | NFR-PROD-4 | 关键指标可见 | LLM 调用量/延迟/失败、Guard 拦截/兜底率、每轮次数 ≤2 可看板化 | R-D2 |
 | NFR-PROD-5 | 披露与合规 | 产品层透明文案上线可见；红线事件可追踪 | R-F1/F2 |
 
@@ -111,5 +111,6 @@
 
 ## 6. 状态速览
 
-- 本表为 M4 阶段一评审基线：共 31 项缺口，其中 P0 7 项（R-A1、R-B1、R-B2、R-C1、R-D2、R-E1、R-F1），全部 ⏸，等待评审确认后按 §3 开工。
+- 本表为 M4 阶段一评审基线：共 31 项缺口，其中 P0 7 项（R-A1、R-B1、R-B2、R-C1、R-D2、R-E1、R-F1）。
+- 已落地（本提交）：R-C1 ✅、R-B3 ✅、R-E1 🚧（待远端）、R-E2 ✅、R-E3 ✅；其余等待确认后按 §3 开工。
 - 每完成一项：回填本节状态 → 06 台账登记 → 07 实施报告追加 → 更新 00/04 看板。

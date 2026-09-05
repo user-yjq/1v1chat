@@ -128,6 +128,20 @@
 - 决策建议：先评审 08 §4 的 NFR-PROD-1~5 与优先级，再按 08 §3 M4.1→M4.9 顺序实施；PG+Alembic 是多 worker 并发与压测的前置条件。
 - 遗留：M4.1~M4.9 加固均未开始；需需求方确认 01 NFR 增补与优先级后再开工。
 - 结论：✅（审计完成；本步无代码变更）
+- 日期：2026-09-05### RPT-M4-002：M4 快速加固落地（T-15，2026-09-05）
+
+- 范围：按 08 §3 中不依赖外部环境/需求评审的快速项落地：prod fail-fast、单版本源、SQLite WAL 漂移修复、环境键对齐、CI workflow。
+- 对照：08 R-C1/R-B3/R-E1/R-E2/R-E3、NFR-PROD-1/3 提案（用户已“按建议来”批准执行）。
+- 完成项：ACC-M4-T15-003~007、ACC-M4-REG-001。
+- 变更与偏差：
+  - `config.py` 新增 `APP_ENV`（默认 dev）与 `validate_prod_settings()`；`main.py` lifespan 启动即校验，prod 下占位 JWT/key、`APP_DEBUG=True` 直接拒绝启动；mock 模式显式放行。dev 行为零变化。
+  - 新增 `backend/version.py`（`APP_VERSION=0.4.0-alpha`）为运行时单版本源（FastAPI 版本 + /api/health）；根 `pyproject.toml` 版本置 `0.4.0a0`，由 `test_prod_safety.py` 断言锁定，防再次漂移。
+  - `db/database.py` 重构出 `make_engine(url)`，文件型 SQLite 启用 `journal_mode=WAL`、`busy_timeout=5000`、`synchronous=NORMAL`（修复 02 ADR-07 声称与实现不符）；:memory: 测试库不受影响。
+  - `.env.example` 按 config.py 全量重写（25 键，清除 EMBEDDING/CHROMA 残留）；`docker-compose.yml` 注入 APP_ENV/ENGINE_VERSION/LLM_MODE/GUARD_*/限流等核心键（CORS 走 config 默认列表）。
+  - 新增 `.github/workflows/ci.yml`：push/PR 触发，backend 跑 ruff + pytest（mock），frontend 跑 npm ci + build。
+- 风险触发：R-10 缓解（fail-fast）；R-12 缓解（单版本源 + 测试锁）；R-13 未触发（仍 SQLite，压测仍需等 M4.1 PG）。
+- 遗留：R-E1 需 GitHub Actions 实际运行验收；NFR-PROD-1/3 仍属“提案已实现”，正式冻结需在 01 评审补记。
+- 结论：✅（93 tests 绿 + ruff 0；含 7 条新增安全/一致性单测）
 - 日期：2026-09-05
 ---
 

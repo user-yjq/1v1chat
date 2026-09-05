@@ -4,16 +4,20 @@ FastAPI 应用入口（方案 C）
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from config import settings
+from config import settings, validate_prod_settings
 from db.database import init_db
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from routers import admin_router, auth_router, chat_router, conversation_router, personas_router
+from version import APP_VERSION
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    problems = validate_prod_settings()
+    if problems:
+        raise RuntimeError("生产配置校验失败： " + "; ".join(problems))
     init_db()
     yield
 
@@ -21,7 +25,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="1v1Chat API",
     description="人设剧本驱动的 1v1 角色聊天平台后端",
-    version="0.3.0-beta",
+    version=APP_VERSION,
     lifespan=lifespan,
 )
 
@@ -47,4 +51,4 @@ app.mount("/media", StaticFiles(directory=settings.MEDIA_DIR), name="media")
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": "1v1chat", "version": "0.3.0-beta"}
+    return {"status": "ok", "service": "1v1chat", "version": APP_VERSION}
