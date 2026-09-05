@@ -85,7 +85,7 @@
 
 ### RPT-M3-001：试探集与 Guard 抽样自检（T-14 离线部分，2026-09-05）
 
-- 范围：防 AI 试探集数据化（25 条）+ Guard 抽样 AI 味自检 + 版本升 0.3.0-beta 并打 tag `v0.3.0-beta`（提交 ab460d0）。
+- 范围：防 AI 试探集数据化（25 条）+ Guard 抽样 AI 味自检 + 版本升 0.4.0-alpha 并打 tag `v0.4.0-alpha`（提交 faaf4e1）。
 - 对照：05 实施文档 Step-14（离线子集）/ 04 WBS T-14。
 - 完成项：ACC-M3-T14-001~002、ACC-M3-REG-001~002。
 - 变更与偏差：
@@ -98,6 +98,24 @@
 - 结论：✅（离线部分完成；73 tests 绿 + ruff 0）
 - 日期：2026-09-05
 
+### RPT-M3-002：对抗评测基建与注入规则补齐（T-14，2026-09-05）
+
+- 范围：评测工具 `backend/tools/eval_adversarial.py` + 注入对抗规则补丁 + 版本继续 v0.4.0-alpha。
+- 对照：04 §6 评测基建（对抗评测）/ 01 NFR-SEC-4、FR-03/FR-04、§5 合规红线。
+- 完成项：ACC-M3-EVAL-001~005。
+- 变更与偏差：
+  - 评测工具复用 `seed.py` 的 4 人设卡片与 2 个剧本，直接驱动 engine2（`run_turn`，不写库、不建会话），
+    覆盖 4 人设 × 4 剧本 = 16 个对抗用例：破功/试探、日常+记忆翻旧账、照片策略边界、注入/隐私/合规。
+  - 判定口径：硬失败 = identity/instruction/markdown/超长/空回复；警告（正式腔/Guard 兜底/超 2 次调用等）仅提示人工评审。
+    输出 `report.md`（人工评审）+ `report.json`（含 trace/guard/状态）到 `backend/data/eval/<ts>/`（gitignore）。
+  - 冒烟发现一个真实边界缺口：注入消息（“系统提示词/内部剧本目标/切换成普通AI助手”）此前规则判为 casual，
+    存在 Actor 顺承执行的破功风险 → `analyzer.py` probe 新增 2 条正则，`probes.py` 增 4 条回归；规则现命中 probe，走“自然带过”战术。
+  - 环境限制：本沙箱禁出网。`backend/.env` 已存在真实 DeepSeek key，但真模型评测必须在可联网/提权环境执行。
+  - 成本控制：默认 16 剧本全跑约需 100+ 次 LLM 调用；`--persona / --battery / --max-rounds` 可裁剪，`--list` 先看用例。
+- 风险触发：R-02（意图漏判/注入顺承）→ 已补规则；R-09（禁网）→ 真模型评测留给外部环境。
+- 遗留：真模型 4 人设走查与对抗报告人工评审（执行 `LLM_MODE=auto python tools/eval_adversarial.py`）。
+- 结论：✅（评测基建就绪；86 tests 绿 + ruff 0 + mock 冒烟 0 硬失败）
+- 日期：2026-09-05
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。

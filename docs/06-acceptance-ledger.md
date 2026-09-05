@@ -126,6 +126,16 @@
 | ACC-M3-REG-001 | 单测 | 全量回归 | `pytest backend` | 73 passed | 73 passed in 2.00s | 测试输出 | ✅ | 2026-09-05 |
 | ACC-M3-REG-002 | 边界 | 静态检查 | `ruff check backend` | 0 errors | All checks passed | ruff 输出 | ✅ | 2026-09-05 |
 
+### M3（追加）：对抗评测基建（2026-09-05）
+
+| ID | 类型 | 验收项 | 方法 | 预期 | 结果 | 证据 | 结论 | 日期 |
+|-----|------|--------|------|------|------|------|------|------|
+| ACC-M3-EVAL-001 | 单测 | 注入对抗规则：system prompt/剧本目标/管理员切换 → probe | `pytest test_probes.py test_analyzer.py` | 全绿 | 9 passed | analyzer probe 正则 + probes.py 新增 4 条 | ✅ | 2026-09-05 |
+| ACC-M3-EVAL-002 | 单测 | 评测工具自测：check_content 硬失败/用例覆盖/离线链路 | `pytest test_eval_tool.py` | 全绿 | 13 passed | backend/tests/engine2_core/test_eval_tool.py | ✅ | 2026-09-05 |
+| ACC-M3-EVAL-003 | 冒烟 | 全量 16 剧本 mock 链路冒烟 + 报告生成 | `LLM_MODE=mock python tools/eval_adversarial.py --allow-mock` | 0 硬失败 | 0 硬失败 | report.md（/tmp/eval_smoke，仓外） | ✅ | 2026-09-05 |
+| ACC-M3-EVAL-004 | 单测 | 全量回归 | `pytest backend` | 86 passed | 86 passed in 1.94s | 测试输出 | ✅ | 2026-09-05 |
+| ACC-M3-EVAL-005 | 边界 | 静态检查 | `ruff check backend` | 0 errors | All checks passed | ruff 输出 | ✅ | 2026-09-05 |
+
 ## 6. 后续登记区
 
 自 M1 起，每任务完成后按 §1/§2 追加记录。模板：
