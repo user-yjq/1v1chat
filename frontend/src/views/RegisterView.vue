@@ -1,0 +1,65 @@
+<template>
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-100 to-blue-50">
+    <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-brand-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4">1v1</div>
+        <h2 class="text-2xl font-bold text-gray-800">注册</h2>
+        <p class="text-gray-500 text-sm mt-1">创建你的账号</p>
+      </div>
+
+      <form @submit.prevent="handleRegister" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+          <input v-model="form.username" type="text" placeholder="3-64字符" required
+                 class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">昵称</label>
+          <input v-model="form.nickname" type="text" placeholder="选填"
+                 class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">密码</label>
+          <input v-model="form.password" type="password" placeholder="至少6位" required
+                 class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm" />
+        </div>
+        <div v-if="error" class="text-red-500 text-sm text-center">{{ error }}</div>
+        <button type="submit" :disabled="loading"
+                class="w-full py-2.5 bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 text-white rounded-xl font-medium text-sm transition-colors">
+          {{ loading ? '注册中...' : '注册' }}
+        </button>
+      </form>
+
+      <div class="text-center mt-6">
+        <span class="text-gray-500 text-sm">已有账号？</span>
+        <router-link to="/login" class="text-brand-600 text-sm font-medium ml-1">去登录</router-link>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+
+const router = useRouter()
+const userStore = useUserStore()
+
+const form = ref({ username: '', password: '', nickname: '' })
+const error = ref('')
+const loading = ref(false)
+
+async function handleRegister() {
+  error.value = ''
+  loading.value = true
+  try {
+    await userStore.register(form.value.username, form.value.password, form.value.nickname)
+    router.push('/home')
+  } catch (e: any) {
+    error.value = e.response?.data?.detail || '注册失败'
+  } finally {
+    loading.value = false
+  }
+}
+</script>
