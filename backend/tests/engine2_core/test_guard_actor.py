@@ -77,3 +77,27 @@ async def test_guard_passes_clean_text():
     ctx.scratch["actions_out"] = [{"kind": "reply_text", "content": "哈哈，你今天忙不忙呀"}]
     await guard(ctx)
     assert ctx.scratch["guard"]["blocked"] is False
+
+
+class _FakeSampledLLM:
+    async def extract_json(self, system, user):
+        return {"ai_flavor": 0.9, "reason": "语气像客服"}
+
+    async def generate(self, system, user):
+        return "哎呀 我这不是打字慢嘛 你急啥"
+
+
+@pytest.mark.asyncio
+async def test_guard_sample_flavor_triggers_rewrite():
+    llm = _FakeSampledLLM()
+    ctx = _ctx(llm)
+    ctx.config = SimpleNamespace(turn_timeout_s=5, guard_enabled=True,
+                                 state_facts_max=20, guard_sample_rate=1.0)
+    ctx.scratch["actions_out"] = [{"kind": "reply_text", "content": "哈哈 今天忙啥呢"}]
+    await guard(ctx)
+    info = ctx.scratch["guard"]
+    assert info["sampled"] is True
+    assert info["blocked"] is True
+    assert "ai_flavor" in info["words"]
+    assert ctx.scratch["actions_out"][0]["content"] == "哎呀 我这不是打字慢嘛 你急啥"
+    assert info["used_fallback"] is False

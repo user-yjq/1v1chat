@@ -1,4 +1,10 @@
-"""守卫节点：破功/黑名单拦截 → 重写一次 → 兜底。不阻断照片直发。"""
+"""守卫节点：破功/黑名单拦截 → 重写一次 → 兜底；可选抽样 AI 味自检。
+
+- 黑名单为确定性快线，任何命中都不落库。
+- 抽样自检（GUARD_SAMPLE_RATE）用 LLM 对文字回复打 AI 味分，高分触发重写。
+- 照片直发不经过文字检查。
+"""
+import random
 import re
 
 from engine2.defaults import pick_fallback
@@ -12,6 +18,10 @@ _BANNED = [
 ]
 _BANNED_WORDS = ["ai", "gpt", "机器人", "人工智能", "模型", "程序", "助手"]
 _MARKDOWN = re.compile(r"(^#{1,6}\s)|(```)|(\*\*)|(^\s*[-*+]\s)", re.MULTILINE)
+_FLAVOR_SYSTEM = (
+    "你是微信聊天质量评审。对下面这条回复打分，只输出 JSON："
+    '{"ai_flavor": 0.0, "reason": "..."}。ai_flavor 0-1，越高越像 AI/机器人语气。'
+)
 
 
 def _blocked_words(text: str) -> list[str]:
@@ -32,15 +42,39 @@ def _rewrite_instruction(words: list[str]) -> str:
     )
 
 
+async def _flavor_score(ctx, content: str):
+    """抽样自检打分；未启用/不支持/未命中抽样时返回 None。"""
+    rate = float(getattr(ctx.config, "guard_sample_rate", 0.0) or 0.0)
+    llm = ctx.llm
+    if rate <= 0 or not hasattr(llm, "extract_json"):
+        return None
+    if random.random() >= rate:
+        return None
+    ctx.scratch["llm_calls"] = ctx.scratch.get("llm_calls", 0) + 1
+    try:
+        raw = await llm.extract_json(_FLAVOR_SYSTEM, (content or "")[:400])
+    except Exception:
+        return None
+    if not isinstance(raw, dict):
+        return None
+    try:
+        return float(raw.get("ai_flavor"))
+    except (TypeError, ValueError):
+        return None
+
+
 async def guard(ctx) -> dict:
     actions = ctx.scratch.get("actions_out") or []
-    info = {"blocked": False, "rewrote": False, "used_fallback": False, "words": []}
-    for action in actions:
-        if action.get("kind") != "reply_text":
-            continue
-        words = _blocked_words(action.get("content", ""))
-        if not words:
-            continue
+    info = {
+        "blocked": False,
+        "rewrote": False,
+        "used_fallback": False,
+        "sampled": False,
+        "words": [],
+    }
+
+    async def fix(action: dict, words: list[str]) -> None:
+        """拦截 → 重写一次 → 仍命中则兜底。"""
         info["blocked"] = True
         info["words"] = words
         enabled = getattr(ctx.config, "guard_enabled", True)
@@ -50,9 +84,26 @@ async def guard(ctx) -> dict:
             info["rewrote"] = True
             if not _blocked_words(rewritten):
                 action["content"] = rewritten
-                continue
+                return
         action["content"] = pick_fallback(ctx.user_message)
         info["used_fallback"] = True
+
+    for action in actions:
+        if action.get("kind") != "reply_text":
+            continue
+        words = _blocked_words(action.get("content", ""))
+        if words:
+            await fix(action, words)
+
+    # 抽样 AI 味自检（默认 5%），只作用于文字回复
+    if not info["blocked"]:
+        target = next((a for a in actions if a.get("kind") == "reply_text"), None)
+        if target:
+            score = await _flavor_score(ctx, target.get("content", ""))
+            if score is not None and score >= 0.7:
+                info["sampled"] = True
+                await fix(target, ["ai_flavor"])
+
     ctx.scratch["actions_out"] = actions
     ctx.scratch["guard"] = info
     return {}

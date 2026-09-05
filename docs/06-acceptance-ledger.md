@@ -117,6 +117,15 @@
 | ACC-M2-REG-001 | 单测 | 全量回归 | `pytest backend` | 69 passed | 69 passed in 1.99s | 测试输出 | ✅ | 2026-09-05 |
 | ACC-M2-REG-002 | 边界 | 静态检查 | `ruff check backend` | 0 errors | All checks passed | ruff 输出 | ✅ | 2026-09-05 |
 
+### M3（离线部分）：试探集与 Guard 抽样（2026-09-05）
+
+| ID | 类型 | 验收项 | 方法 | 预期 | 结果 | 证据 | 结论 | 日期 |
+|-----|------|--------|------|------|------|------|------|------|
+| ACC-M3-T14-001 | 单测 | 防 AI 试探集 25 条：doubt/probe 不落 casual | `pytest test_probes.py` | 全绿 | 通过（含 3 条新增漏判回归） | backend/tests/engine2_core/probes.py | ✅ | 2026-09-05 |
+| ACC-M3-T14-002 | 单测 | Guard 抽样 AI 味自检：score≥0.7 触发重写 | `pytest test_guard_actor.py` | 全绿 | 通过 | backend/engine2/nodes/guard.py | ✅ | 2026-09-05 |
+| ACC-M3-REG-001 | 单测 | 全量回归 | `pytest backend` | 73 passed | 73 passed in 2.00s | 测试输出 | ✅ | 2026-09-05 |
+| ACC-M3-REG-002 | 边界 | 静态检查 | `ruff check backend` | 0 errors | All checks passed | ruff 输出 | ✅ | 2026-09-05 |
+
 ## 6. 后续登记区
 
 自 M1 起，每任务完成后按 §1/§2 追加记录。模板：
