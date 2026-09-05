@@ -26,8 +26,8 @@
 
 | ID | 缺口 | 现状（证据） | 加固建议 | 优先级 | 状态 | 验收方式 |
 |----|------|--------------|----------|--------|------|----------|
-| R-B1 | 仍是 SQLite，未切 PostgreSQL | `backend/config.py DATABASE_URL` 默认 sqlite；02 ADR-07 明确生产候选 PG | 引入 PG 连接（连接池/重试），SQLite 仅 dev 与 CI | P0 | ⏸ | 全量测试在 PG 上通过；E2E 通过 |
-| R-B2 | 无迁移工具 | `backend/db/database.py init_db()` 用 `create_all`；schema 演进不可回滚 | 引入 Alembic：基线迁移 + 后续变更走版本迁移；容器启动跑 `upgrade head` | P0 | ⏸ | 从空库/旧库升级两种路径验收 |
+| R-B1 | 仍是 SQLite，未切 PostgreSQL | `backend/config.py DATABASE_URL` 默认 sqlite；02 ADR-07 明确生产候选 PG | 引入 PG 连接（连接池/重试），SQLite 仅 dev 与 CI | P0 | ✅ | 本地 PG 全量 93 tests 绿 + alembic check 一致 |
+| R-B2 | 无迁移工具 | `backend/db/database.py init_db()` 用 `create_all`；schema 演进不可回滚 | 引入 Alembic：基线迁移 + 后续变更走版本迁移；容器启动跑 `upgrade head` | P0 | ✅ | 基线 0001 建 5 表；SQLite/PG upgrade+check 均无漂移 |
 | R-B3 | SQLite WAL/busy_timeout 未启用，与文档不符 | 02 ADR-07 声称已启用；`backend/db/database.py` 无 PRAGMA | 开发库补 `journal_mode=WAL`+`busy_timeout`（文档与代码对齐） | P2 | ✅ | 单测断言 WAL/busy_timeout=5000 |
 | R-B4 | 会话 state 迁移无版本化流程 | `engine2/schema.normalize_state` 容忍旧数据，但 schema 演进策略未定义 | 定义 state v2→v3 的迁移清单与灰度策略（旧会话可降级/迁移脚本） | P2 | ⏸ | 迁移演练记录 |
 | R-B5 | 消息查询无联合索引/分页 | `models/database.Message` 仅 `sent_at` 索引；`routers/conversation.py` 用 `.limit()` 无游标 | 加 `(conversation_id, sent_at)` 联合索引；消息列表改游标分页 | P2 | ⏸ | 万级消息会话接口 p95 达标 |
@@ -112,5 +112,6 @@
 ## 6. 状态速览
 
 - 本表为 M4 阶段一评审基线：共 31 项缺口，其中 P0 7 项（R-A1、R-B1、R-B2、R-C1、R-D2、R-E1、R-F1）。
-- 已落地（本提交）：R-C1 ✅、R-B3 ✅、R-E1 🚧（待远端）、R-E2 ✅、R-E3 ✅；其余等待确认后按 §3 开工。
+- 已落地：R-C1 ✅、R-B3 ✅、R-E1 🚧（待远端）、R-E2 ✅、R-E3 ✅；M4.1：R-B1 ✅、R-B2 ✅（备份/恢复 R-B6 仍 ⏸）。
+- 实施记录：本次为 M4.1 PG+Alembic（见 RPT-M4-003），M4.2 多 worker 写者模型可在此基础上开工。
 - 每完成一项：回填本节状态 → 06 台账登记 → 07 实施报告追加 → 更新 00/04 看板。

@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from config import settings, validate_prod_settings
-from db.database import init_db
+from db.database import init_db, run_migrations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -18,7 +18,11 @@ async def lifespan(app: FastAPI):
     problems = validate_prod_settings()
     if problems:
         raise RuntimeError("生产配置校验失败： " + "; ".join(problems))
-    init_db()
+    # 生产：schema 走 Alembic 版本迁移；开发：create_all 快速可用（M4.1）
+    if (settings.APP_ENV or "").strip().lower() == "prod":
+        run_migrations()
+    else:
+        init_db()
     yield
 
 

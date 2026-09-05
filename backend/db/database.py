@@ -49,3 +49,12 @@ def get_db():
 def init_db():
     from models.database import Base
     Base.metadata.create_all(bind=engine)
+
+def run_migrations() -> None:
+    """用 Alembic 升到 head（生产启动路径；开发用 init_db() 快速建表）。"""
+    from alembic import command
+    from alembic.config import Config
+
+    ini_path = Path(__file__).resolve().parents[1] / "alembic.ini"
+    command.upgrade(Config(str(ini_path)), "head")
+

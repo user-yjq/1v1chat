@@ -1,4 +1,7 @@
 # 与 pyproject.toml 保持一致（pip/venv 路径使用）
+# 数据迁移 / PostgreSQL（M4.1）
+alembic==1.13.2
+psycopg2-binary==2.9.9
 fastapi==0.111.0
 uvicorn[standard]==0.30.0
 python-multipart==0.0.9

@@ -142,6 +142,21 @@
 - 风险触发：R-10 缓解（fail-fast）；R-12 缓解（单版本源 + 测试锁）；R-13 未触发（仍 SQLite，压测仍需等 M4.1 PG）。
 - 遗留：R-E1 需 GitHub Actions 实际运行验收；NFR-PROD-1/3 仍属“提案已实现”，正式冻结需在 01 评审补记。
 - 结论：✅（93 tests 绿 + ruff 0；含 7 条新增安全/一致性单测）
+- 日期：2026-09-05### RPT-M4-003：M4.1 PG + Alembic（T-15，2026-09-05）
+
+- 范围：PostgreSQL 接入与 Alembic 版本化迁移落地（08 R-B1/R-B2）。
+- 对照：02 ADR-07、03 §并发/§迁移、08 §3 M4.1。
+- 完成项：ACC-M4-M41-001~005、ACC-M4-REG-002。
+- 变更与偏差：
+  - 依赖新增：`alembic==1.13.2`、`psycopg2-binary==2.9.9`（root pyproject + backend/requirements.txt）。
+  - Alembic 基建：`backend/alembic.ini`、`alembic/env.py`（URL 取 settings.DATABASE_URL，支持 sqlite/pg，include_name 只管应用表）、`script.py.mako`。
+  - 基线迁移 `b8bc0a420a37`：users/scenarios/personas/conversations/messages 5 表 + 索引（autogenerate 后 ruff 规整）。
+  - 启动策略：`main.lifespan` 在 `APP_ENV=prod` 时 `run_migrations()`（alembic upgrade head），dev 仍 `init_db()`。
+  - `tests/conftest.py` 支持 `TEST_DATABASE_URL`，同一套件可跑 sqlite 内存与真实 PG。
+  - CI：backend job 加 postgres:16 service；步骤=ruff → alembic upgrade+check(PG) → pytest(sqlite) → pytest(PG)。
+- 验证证据：本地起 `postgres:16-alpine`（127.0.0.1:54331，容器 `1v1chat-pg`）后——upgrade head 成功、alembic check 无漂移、`TEST_DATABASE_URL` 全量 93 passed in 4.49s。
+- 风险/遗留：R-B6 备份恢复脚本与演练仍未做（P1，另项）；R-11 多 worker 写者模型属 M4.2，本步未改 engine2 锁语义。
+- 结论：✅（PG 迁移与全量测试通过；sqlite 93 绿 + ruff 0）
 - 日期：2026-09-05
 ---
 

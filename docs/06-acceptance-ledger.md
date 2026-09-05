@@ -148,6 +148,12 @@
 | ACC-M4-T15-006 | 配置 | .env.example 25 键与 config.py 对齐；compose 注入 engine2 核心键 | 配置对照 | 一致 | 完成 | .env.example、docker-compose.yml | ✅ | 2026-09-05 |
 | ACC-M4-T15-007 | 工程 | CI 质量门 workflow（backend lint+test / frontend build） | 语法审阅 | 可运行 | 待 GitHub 远端验证 | .github/workflows/ci.yml | 🚧 | 2026-09-05 |
 | ACC-M4-REG-001 | 单测 | 全量回归 | `pytest backend` | 93 passed | 93 passed in 2.12s | 测试输出 | ✅ | 2026-09-05 |
+| ACC-M4-M41-001 | 迁移 | Alembic 基线 0001 建 5 表；`upgrade head` + `alembic check` 无漂移 | `DATABASE_URL=sqlite/pg alembic upgrade head && alembic check` | 一致 | 通过 | alembic/versions/b8bc0a420a37_*.py | ✅ | 2026-09-05 |
+| ACC-M4-M41-002 | 集成 | 全量 93 tests 在 PostgreSQL 上通过 | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 93 passed in 4.49s | 本地 PG 16 容器（127.0.0.1:54331） | ✅ | 2026-09-05 |
+| ACC-M4-M41-003 | 单测 | prod 启动走 Alembic 迁移、dev 走 create_all | lifespan 分支审阅 | 分支正确 | 通过 | backend/main.py、db/database.run_migrations | ✅ | 2026-09-05 |
+| ACC-M4-M41-004 | 工程 | conftest 支持 TEST_DATABASE_URL（PG 测试库） | `pytest`（sqlite/PG 两态） | 双态全绿 | 通过 | backend/tests/conftest.py | ✅ | 2026-09-05 |
+| ACC-M4-M41-005 | 工程 | CI 增加 postgres service：迁移 + sqlite/PG 双跑 | workflow 审阅 | 可运行 | 待 GitHub 远端验证 | .github/workflows/ci.yml | 🚧 | 2026-09-05 |
+| ACC-M4-REG-002 | 单测 | 全量回归（sqlite） | `pytest backend` | 93 passed | 93 passed in 2.05s | 测试输出 | ✅ | 2026-09-05 |
 
 ## 6. 后续登记区
 
