@@ -21,14 +21,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="1v1Chat API",
     description="人设剧本驱动的 1v1 角色聊天平台后端",
-    version="0.2.0",
+    version="0.3.0-beta",
     lifespan=lifespan,
 )
 
+_origins = list(settings.CORS_ORIGINS) if settings.CORS_ORIGINS else ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_origins,
+    allow_credentials="*" not in _origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -46,4 +47,4 @@ app.mount("/media", StaticFiles(directory=settings.MEDIA_DIR), name="media")
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": "1v1chat", "version": "0.2.0"}
+    return {"status": "ok", "service": "1v1chat", "version": "0.3.0-beta"}

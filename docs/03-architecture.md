@@ -219,7 +219,7 @@ backend/services/chat_engine2.py   # 对外服务（签名对齐 v1 process_mess
 backend/config.py                  # 增加下节字段
 backend/llm/provider.py            # 增加 extract_json 能力（不破坏现有 generate）
 backend/llm/prompts/persona_actor_v2.txt
-backend/tests/engine2/             # 新测试（按节点分文件）
+backend/tests/engine2_core/        # 新测试（按节点分文件；命名避免遮蔽 engine2 包）
 backend/routers/chat.py            # 按 ENGINE_VERSION 选择服务（v0.3 末期）
 backend/engine/ + chat_engine.py   # 冻结不动；切 v2 稳定后归档 backend/_legacy/engine_v1/
 ```
@@ -262,4 +262,4 @@ STATE_FACTS_MAX: int = 20
 
 - `nodes/*.py` → `StateGraph` 节点（签名 `node(state) -> updates`，与现契约同构）；
 - `TurnContext.state` → checkpointer 持久化（保留 DB 冗余以便回放与审计）；
-- 测试不改语义：以 `tests/engine2/` 为回归基线对比 v1/v2 行为。
+- 测试不改语义：以 `tests/engine2_core/` 为回归基线对比 v1/v2 行为。

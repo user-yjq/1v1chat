@@ -1,0 +1,59 @@
+"""T-04/T-11：薄管线端到端（mock，无 DB）"""
+from types import SimpleNamespace
+
+import pytest
+from engine2.pipeline import run_turn
+from engine2.schema import TurnContext, default_state_v2
+
+
+class _FakeLLM:
+    async def generate(self, system, user):
+        return "嗯嗯，我也这么觉得，你呢？"
+
+
+def _persona():
+    return SimpleNamespace(
+        name="桃桃", age=23, gender="女", city="成都", occupation="奶茶店兼职",
+        personality="自来熟", speaking_style="短句多", bio="",
+        redlines=["不暴露AI"], photo_assets=["/media/life/photo1.jpg"],
+        photo_policy={"mode": "instant", "max_photos": 3, "caption_template": "看～"},
+    )
+
+
+def _ctx(message, persona=None):
+    return TurnContext(
+        conversation_id=7, user_id=1, persona=persona, scenario=None,
+        user_message=message, state=default_state_v2("free_chat"),
+        llm=_FakeLLM(),
+        config=SimpleNamespace(turn_timeout_s=5, guard_enabled=True, state_facts_max=20),
+    )
+
+
+@pytest.mark.asyncio
+async def test_pipeline_casual_turn():
+    ctx = _ctx("哈哈哈今天摸鱼一天")
+    state, actions, trace = await run_turn(ctx)
+    assert any(a["kind"] == "reply_text" for a in actions)
+    assert trace["engine"] == "engine2"
+    assert trace["llm_calls"] >= 1
+    assert state["stage"]["turns"] == 1
+    assert trace["decisions"]["tactic"] in ("casual",)
+
+
+@pytest.mark.asyncio
+async def test_pipeline_photo_send_skips_llm():
+    ctx = _ctx("发张照片看看嘛", persona=_persona())
+    state, actions, trace = await run_turn(ctx)
+    photo_actions = [a for a in actions if a["kind"] == "send_photo"]
+    assert photo_actions and photo_actions[0]["media_url"] == "/media/life/photo1.jpg"
+    assert trace["decisions"]["photo"] == "send"
+    assert state["photos"]["sent"] == 1
+
+
+@pytest.mark.asyncio
+async def test_pipeline_remember_and_stage_turns():
+    ctx = _ctx("我在北京上班，养了一只猫")
+    state, actions, trace = await run_turn(ctx)
+    assert state["facts"].get("work_city") == "北京"
+    assert state["facts"].get("pet") == "猫"
+    assert state["stage"]["turns"] == 1

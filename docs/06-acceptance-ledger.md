@@ -87,7 +87,37 @@
 | PERF-3 | mock 单轮 <1s、真模型 P95 <3s | ⏸ T-11/T-14 记录 |
 | PERF-4 | Actor max_tokens ≤120 防长文 | ⏸ T-10 实现校验 |
 
-## 5. 后续登记区
+## 5. 实施记录（按里程碑追加）
+
+### M1：T-02~T-11（2026-09-05）
+
+| ID | 类型 | 验收项 | 方法 | 预期 | 结果 | 证据 | 结论 | 日期 |
+|-----|------|--------|------|------|------|------|------|------|
+| ACC-M1-T02-001 | 单测 | StateV2/AnalyzerOut schema 契约与校验 | `pytest tests/engine2_core/test_schema.py` | 全绿 | 通过 | backend/engine2/schema.py | ✅ | 2026-09-05 |
+| ACC-M1-T03-001 | 边界 | config 新增 engine2 字段，缺省可跑 | `python -c "from config import settings; ..."` | v1/Guard=True/facts=20/timeout=20 | 输出一致 | backend/config.py | ✅ | 2026-09-05 |
+| ACC-M1-T04-001 | 单测 | pipeline 编排（回合轮次/锁/照片/记忆贯通） | `test_pipeline.py` | 全绿 | 通过 | backend/engine2/pipeline.py | ✅ | 2026-09-05 |
+| ACC-M1-T05-001 | 单测 | 心理计分（doubt/probe/红包/封顶） | `test_policies.py` | 全绿 | 通过 | backend/engine2/policies.py | ✅ | 2026-09-05 |
+| ACC-M1-T06-001 | 单测 | 照片谈判 4 模式 + 红包解锁/暖度 | `test_policies.py` | 全绿 | 通过 | backend/engine2/policies.py | ✅ | 2026-09-05 |
+| ACC-M1-T07-001 | 单测 | 战术路由优先级与指令拼接 | `test_tactics.py` | 全绿 | 通过 | backend/engine2/tactics.py | ✅ | 2026-09-05 |
+| ACC-M1-T08-001 | 单测 | 记忆抽取/隐私忽略/上限（整表替换） | `test_memory.py` | 全绿 | 通过 | backend/engine2/nodes/memory.py | ✅ | 2026-09-05 |
+| ACC-M1-T09-001 | 单测 | 感知：试探 vs 怀疑区分、红包已发识别 | `test_analyzer.py` | 全绿 | 通过 | backend/engine2/nodes/analyzer.py | ✅ | 2026-09-05 |
+| ACC-M1-T10-001 | 单测 | Actor/Guard：拦截→重写→兜底，照片直发 0 LLM | `test_guard_actor.py` | 全绿 | 通过 | backend/engine2/nodes/{actor,guard}.py | ✅ | 2026-09-05 |
+| ACC-M1-T11-001 | 走查 | 卖茶剧本 mock 全流程 + 归属/超长拒绝 | `test_chat_engine2.py` | 全绿 | 通过 | backend/services/chat_engine2.py | ✅ | 2026-09-05 |
+| ACC-M1-REG-001 | 单测 | 全量回归（旧 22 + engine2 39） | `pytest -q backend/tests` | 61 passed | 61 passed in 1.03s | 测试输出 | ✅ | 2026-09-05 |
+| ACC-M1-REG-002 | 边界 | 静态检查 | `ruff check backend` | 0 errors | All checks passed | ruff 输出 | ✅ | 2026-09-05 |
+
+### M2：T-12~T-13（2026-09-05）
+
+| ID | 类型 | 验收项 | 方法 | 预期 | 结果 | 证据 | 结论 | 日期 |
+|-----|------|--------|------|------|------|------|------|------|
+| ACC-M2-T12-001 | E2E | v1/v2 行为对照 + 回滚 + 越权/长度/限流/admin/CORS | 真实 uvicorn HTTP（提权执行，因沙箱禁 loopback） | 全过 | 7/7 PASS（含 v1==v2 parity、rate 429） | backend/tools/e2e_http_check.py | ✅ | 2026-09-05 |
+| ACC-M2-T12-002 | 走查 | 双引擎服务级对照与回滚（离线） | `tests/engine2_core/test_engine_parity.py` | 全绿 | 通过 | 测试输出 | ✅ | 2026-09-05 |
+| ACC-M2-T13-001 | 单测 | 路由校验纯函数（owner 404/长度 400/限流 429） | `test_router_security.py` | 全绿 | 通过 | backend/routers/chat.py helpers | ✅ | 2026-09-05 |
+| ACC-M2-T13-002 | 安全 | admin 403 边界 + CORS 白名单 + JWT 往返 | 同上 | 全绿 | 通过 | app.user_middleware 内省 | ✅ | 2026-09-05 |
+| ACC-M2-REG-001 | 单测 | 全量回归 | `pytest backend` | 69 passed | 69 passed in 1.99s | 测试输出 | ✅ | 2026-09-05 |
+| ACC-M2-REG-002 | 边界 | 静态检查 | `ruff check backend` | 0 errors | All checks passed | ruff 输出 | ✅ | 2026-09-05 |
+
+## 6. 后续登记区
 
 自 M1 起，每任务完成后按 §1/§2 追加记录。模板：
 

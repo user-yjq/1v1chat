@@ -48,6 +48,41 @@
 - 结论：✅
 - 日期：2026-09-05
 
+### RPT-M1-001：engine2 骨架实现（T-02~T-11，2026-09-05）
+
+- 范围：engine2 基础模块（schema/errors/defaults）、策略（policies/tactics）、五个节点（analyzer/memory/decider/actor/guard）、薄编排 pipeline、对外服务 chat_engine2、config 新字段、persona_actor_v2 prompt、Mock 走查测试。
+- 对照：05 实施文档 Step-2~Step-11 / 04 WBS T-02~T-11。
+- 完成项：ACC-M1-T02-001 ~ ACC-M1-T11-001、ACC-M1-REG-001/002。
+- 变更与偏差：
+  - 测试目录命名 `tests/engine2/` → `tests/engine2_core/`：`engine2` 测试包会遮蔽同名的应用包导致 import 失败（已登记到 05 模块表与 03 目录规划）。
+  - facts reducer 语义由“合并”改为“整体替换”：Memory 是 facts 唯一写者，整表重算便于按上限淘汰最旧条目（Keep-newest eviction）。
+  - chat_engine2 与 v1 服务不同：**不写库不提交**，返回 (ai_plans, trace, state)，由 T-12 路由层在单事务内统一持久化（符合架构 §10/§11，避免 v1 两段提交的窗口）。
+  - 照片谈判/战术路由基于“本回合到达时（推进前）”的阶段，Actor 采用叙事快照（narrative），避免推进后阶段泄露到话术。
+  - Analyzer 同时实现规则与 LLM JSON 合并（provider 增加 extract_json）；Mock 离线走规则，与真模型路径共用同一契约。
+- 风险触发：R-02（意图识别不准）部分显现：试探“你要是AI就眨眨眼”曾被 doubt 命中，通过收紧 doubt 正则解决并补回归用例。R-07 未触发（未引入 LangGraph）。
+- 遗留：
+  - Guard 抽样自检（GUARD_SAMPLE_RATE）与“AI 味打分”未实现，随 v0.4 试探集/对抗评测落地。
+  - T-12（路由开关 ENGINE_VERSION + E2E 对照）与 T-13（CORS/限流/注入用例）未开始。
+- 结论：✅（M1 骨架完成；退出标准：tests/engine2_core 39 + 旧 22 = 61 全绿，ruff 0）
+- 日期：2026-09-05
+
+### RPT-M2-001：双引擎路由与安全加固（T-12~T-13，2026-09-05）
+
+- 范围：routers/chat.py 按 `ENGINE_VERSION` 分发 v1/v2 并统一单事务持久化；路由校验抽为纯函数（归属/长度）；进程内限流；CORS 白名单化。
+- 对照：05 实施文档 Step-12~Step-13 / 04 WBS T-12、T-13。
+- 完成项：ACC-M2-T12-001~002、ACC-M2-T13-001~002、ACC-M2-REG-001~002。
+- 变更与偏差：
+  - **环境限制**：本沙箱禁 loopback TCP，且任意 sync 路由/依赖在 in-process ASGI 下会挂起（最小 FastAPI sync 路由复现确认），因此 HTTP 自动测试不可行。落地替代：路由校验抽成纯函数单测 + 双引擎服务级对照测试纳入离线套件；真实 uvicorn HTTP E2E 以提权方式执行（`backend/tools/e2e_http_check.py`，7/7 PASS）。
+  - chat_engine2 不写库，v2 分支由路由在同一事务内保存消息 + `conv.state`（消除 v1 的两段提交窗口）；v1 分支行为保持不变。
+  - CORS：`allow_origins` 从 `["*"]` 收紧为配置白名单（默认 localhost:3000/5173），`allow_credentials` 仅在无通配时开启（SEC-4 关闭）。
+  - 限流：单进程滑动窗口 `core/ratelimit.py`，配置 `CHAT_RATE_PER_MIN`；多实例需换 Redis（v0.5）。
+- 风险触发：R-05 未触发；沙箱环境限制作为 R-09 登记（见下）。
+- 遗留：
+  - HTTP E2E 需可联网/可绑定的 CI 环境定期执行（本环境仅提权手工验证）。
+  - v0.4：真模型调优、试探集/对抗评测、Guard 抽样自检。
+- 结论：✅（69 tests 绿 + ruff 0 + 真实 HTTP E2E 7/7）
+- 日期：2026-09-05
+
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。

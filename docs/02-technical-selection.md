@@ -62,9 +62,9 @@
 - 结论：engine2 输出结构化 trace JSON 落库（agent_trace）；预留 `tracing/` 适配器接口；`.env` 已有 `LANGFUSE_*`，v0.5 再启用。
 - 理由：先有数据再上平台；避免 demo 阶段引入外部依赖与网络失败点。
 
-## ADR-11：测试用 pytest + pytest-asyncio + ruff（保留），新增 tests/engine2/
+## ADR-11：测试用 pytest + pytest-asyncio + ruff（保留），新增 tests/engine2_core/
 
-- 结论：沿用现有测试栈；旧测试冻结不动，新测试进 `tests/engine2/`。
+- 结论：沿用现有测试栈；旧测试冻结不动，新测试进 `tests/engine2_core/`（目录名避开与 engine2 应用包同名遮蔽）。
 - 理由：回归门槛 NFR-TEST-2 依赖稳定测试基建。
 
 ## ADR-12：运行时不用 ReAct / Multi-Agent / MCP / Skills

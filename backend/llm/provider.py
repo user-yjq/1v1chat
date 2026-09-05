@@ -5,6 +5,7 @@ LLM Provider（方案 C：单次生成）
 - build_llm()：按配置选择，engine 只依赖 generate(system, user) -> str
 """
 import hashlib
+import json
 
 import httpx
 from config import settings
@@ -14,6 +15,10 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 class BaseLLM:
     async def generate(self, system: str, user: str) -> str:
         raise NotImplementedError
+
+    async def extract_json(self, system: str, user: str) -> dict | None:
+        """结构化输出；不可用时返回 None（调用方走规则降级）。"""
+        return None
 
 
 class MockLLM(BaseLLM):
@@ -33,6 +38,8 @@ class MockLLM(BaseLLM):
         h = hashlib.md5((system + user).encode("utf-8")).hexdigest()
         idx = int(h[:4], 16) % len(self._lines)
         return self._lines[idx]
+
+    # extract_json 继承 BaseLLM：返回 None → Analyzer 走规则降级
 
 
 class RemoteLLM(BaseLLM):
@@ -74,6 +81,30 @@ class RemoteLLM(BaseLLM):
             "stream": False,
         }
         return await self._post(payload)
+
+    async def extract_json(self, system: str, user: str) -> dict | None:
+        """尝试 JSON 模式结构化输出；解析失败一律返回 None（不抛异常）。"""
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "temperature": 0.1,
+            "max_tokens": 800,
+            "stream": False,
+        }
+        try:
+            content = await self._post(payload)
+        except Exception:
+            return None
+        start, end = content.find("{"), content.rfind("}")
+        if start < 0 or end <= start:
+            return None
+        try:
+            return json.loads(content[start:end + 1])
+        except (json.JSONDecodeError, ValueError):
+            return None
 
 
 def build_llm() -> BaseLLM:

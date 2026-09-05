@@ -38,5 +38,26 @@ class Settings(BaseSettings):
     # 静态媒体目录（AI 发送的照片/头像放在这里，以 /media 路由访问）
     MEDIA_DIR: str = "./media"
 
+    # CORS 白名单（T-13：禁止 * + credentials 组合；为空则回退 ["*"]）
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+
+    # === engine2（v0.3 起）===
+    ENGINE_VERSION: str = "v1"          # v1=旧引擎 / v2=engine2
+    TURN_TIMEOUT_S: float = 20.0
+    ACTOR_MAX_TOKENS: int = 120
+    ACTOR_TEMPERATURE: float = 0.9
+    HISTORY_LIMIT: int = 10
+    ANALYZER_MODEL: str = ""            # 空则复用 DEEPSEEK_MODEL
+    GUARD_ENABLED: bool = True
+    GUARD_SAMPLE_RATE: float = 0.05
+    MSG_MAX_LEN: int = 2000
+    CHAT_RATE_PER_MIN: int = 30
+    STATE_FACTS_MAX: int = 20
+
 
 settings = Settings()

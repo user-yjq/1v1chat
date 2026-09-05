@@ -43,7 +43,7 @@
 
 | 模块/文件 | 职责 | 依赖方向 | 测试文件 |
 |-----------|------|----------|----------|
-| `engine2/schema.py` | TurnContext/StatePatch/StateV2/AnalyzerOut | models, pydantic | `tests/engine2/test_schema.py` |
+| `engine2/schema.py` | TurnContext/StatePatch/StateV2/AnalyzerOut | models, pydantic | `tests/engine2_core/test_schema.py` |
 | `engine2/errors.py` | 异常层级 | 无 | 随用随测 |
 | `engine2/pipeline.py` | 锁/顺序/超时/降级/patch 合并 | schema, nodes | `test_pipeline.py` |
 | `engine2/policies.py` | 心理计分/照片谈判/阶段机 | schema | `test_policies.py` |

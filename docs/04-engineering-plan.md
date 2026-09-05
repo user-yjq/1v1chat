@@ -7,7 +7,7 @@
 | 里程碑 | 目标 | 退出标准（Exit Criteria） | 交付物 |
 |--------|------|---------------------------|--------|
 | M0 基线冻结 | 封存 v0.2.0，建立文档体系 | 22 tests 绿、ruff 0、git tag v0.2.0、docs 齐 | 07 基线报告 + 本套文档 |
-| M1 engine2 骨架 | 节点契约/状态机/pipeline 落地，Mock 全通 | tests/engine2 全绿；旧 22 tests 仍绿；mock 走查 4 人设全通 | engine2 + schema + 单测 |
+| M1 engine2 骨架 | 节点契约/状态机/pipeline 落地，Mock 全通 | tests/engine2_core 全绿；旧 22 tests 仍绿；mock 走查通过 | engine2 + schema + 单测 |
 | M2 接入切换 | HTTP 走 engine2，v1/v2 开关 | E2E（真实 uvicorn）v2 通过；v1 一键回滚验证 | chat_engine2 + 路由开关 |
 | M3 真模型调优 | 真人感与剧本质量达标 | 真实模型 4 人设走查 + 试探集通过（台账登记证据） | persona_actor_v2 + 调参记录 |
 | M4 生产化评估 | 工程化缺口清单与加固 | 队列/网关/Alembic/观测/安全整改项完成并验收 | v0.5 候选版 + 部署文档 |
@@ -38,7 +38,7 @@
 ## 3. 文档驱动流程（每个任务必走）
 
 1. 读任务卡：确认 FR/NFR 与边界（01 §4/§5、03 §14）。
-2. 写边界测试（先红）：单测/用例先落 `tests/engine2/`。
+2. 写边界测试（先红）：单测/用例先落 `tests/engine2_core/`。
 3. 最小实现（绿）：只做本任务卡范围，不留半成品。
 4. 全量回归：`pytest` + `ruff` + 受影响旧测试。
 5. 登记 06 台账（见 06 §登记规则），追加 07 实施报告。
@@ -56,6 +56,7 @@
 | R-06 | 范围蔓延（想顺手改前端/加语音…） | 高/中 | 只认 FR 清单；范围外一律进 backlog | 变更评审 |
 | R-07 | 依赖引入冲动（LangGraph 等） | 中/低 | ADR 记录 + “触发条件”门禁（03 §15） | 先改文档再引入 |
 | R-08 | 合规风险（伪装真人诱导） | 低/高 | 01 §5 红线 + 产品层透明提示 + 演练口径 | 合规评审前置 |
+| R-09 | 沙箱/CI 环境无 loopback TCP，sync 路由 in-process 挂起，HTTP E2E 跑不了 | 中/中 | E2E 脚本化（backend/tools/e2e_http_check.py），在可联网 CI 或提权环境执行；离线套件覆盖逻辑层 | 台账记录执行环境 |
 
 ## 5. 版本与发布策略
 
@@ -68,8 +69,8 @@
 
 | 件 | 内容 | 存放 |
 |----|------|------|
-| 剧本走查 | 卖茶全流程/自由聊关键路径（沿用 v1 walkthrough 思路） | `tests/engine2/test_walkthrough*.py` |
-| 防 AI 试探集 | “你是机器人吗/AI 就承认/眨眨眼”等多变体；断言不破功 | `tests/engine2/probes.py` 数据化 |
+| 剧本走查 | 卖茶全流程/自由聊关键路径（沿用 v1 walkthrough 思路） | `tests/engine2_core/test_chat_engine2.py` |
+| 防 AI 试探集 | “你是机器人吗/AI 就承认/眨眨眼”等多变体；断言不破功 | `tests/engine2_core/probes.py` 数据化 |
 | 对抗评测 | 模拟“刁钻用户”模型对话 N 轮，输出报告供人工评审 | `tools/eval_adversarial.py`（M3） |
 | 人味评审 | 抽样聊天记录由人工/模型打分（AI味/一致性/引导自然度） | 台账登记 + M3 报告 |
 

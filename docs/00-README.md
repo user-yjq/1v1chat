@@ -21,7 +21,7 @@
 | 版本 | 含义 | 状态 |
 |------|------|------|
 | v0.2.0 | 方案 C 基线（确定性状态机 + 单次 Actor），已封存 | ✅ 已验收（2026-09-05 复跑：22 tests / ruff 0） |
-| v0.3.0 | engine2 重构：感知/记忆/决策/行动/守卫薄管线 | 🚧 规划完成，待实施 |
+| v0.3.0 | engine2 重构 + 双引擎路由与安全加固 | 🚧 M1/M2 完成（T-02~T-13），69 tests 绿 + HTTP E2E 7/7；待 v0.4 真模型调优 |
 | v0.4.0 | 评测与真人感调优（试探集 + 对抗评测） | ⏸ 未开始 |
 | v0.5.0 | 生产化候选（队列/网关/观测/Alembic/安全加固） | ⏸ 未开始 |
 
@@ -46,7 +46,7 @@ backend/
   routers/               HTTP 层（会话归属与权限在这里校验，engine 不重复实现）
   models/                Persona/Scenario/Conversation/Message/User
   tests/                 v1 测试（冻结，切 v2 前保持绿）
-  tests/engine2/          v2 测试（规划）
+  tests/engine2_core/     v2 测试（已落地；命名避开 engine2 包名冲突）
 frontend/                Vue3（API 兼容，v0.3 原则上不改前端）
 docs/                    本文档体系
 ```
