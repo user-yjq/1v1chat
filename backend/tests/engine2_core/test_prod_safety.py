@@ -18,7 +18,7 @@ def test_dev_env_never_blocked():
 
 def test_prod_placeholder_secret_and_key_flagged():
     s = Settings(_env_file=None, APP_ENV="prod", JWT_SECRET="change-me-in-production",
-                 DEEPSEEK_API_KEY="sk-your-xxx", APP_DEBUG=False)
+                 DEEPSEEK_API_KEY="sk-your-xxx", APP_DEBUG=False, LLM_MODE="auto")
     text = "; ".join(validate_prod_settings(s))
     assert "JWT_SECRET" in text
     assert "DEEPSEEK_API_KEY" in text
@@ -26,7 +26,7 @@ def test_prod_placeholder_secret_and_key_flagged():
 
 def test_prod_debug_flagged():
     s = Settings(_env_file=None, APP_ENV="prod", JWT_SECRET="x" * 48,
-                 DEEPSEEK_API_KEY="sk-ok-1234567890", APP_DEBUG=True)
+                 DEEPSEEK_API_KEY="sk-ok-1234567890", APP_DEBUG=True, LLM_MODE="auto")
     assert any("APP_DEBUG" in p for p in validate_prod_settings(s))
 
 
