@@ -243,7 +243,7 @@
 
 - 范围：R-C2（登录/注册防爆破）、R-C3（JWT 刷新/撤销）、R-C5（管理动作审计）、R-C6（管理员一次性引导）。
 - 对照：08 §2.3；依赖 M4.3（配置注入基座）。
-- 完成项：ACC-M4-M46-001~005、ACC-M4-REG-011/012。
+- 完成项：ACC-M4-M46-001~006、ACC-M4-REG-011/012（006=CI 远端 success，run 34013390556）。
 - 变更与偏差：
   - R-C2：`core/ratelimit.py` 新增登录失败计数——进程内滑动窗口（窗口=`LOGIN_LOCK_MINUTES`），配置 `REDIS_URL` 自动走 Redis 固定窗口、异常回退进程内（与聊天限流同策略）；`/api/auth/login` 达 `LOGIN_FAIL_LIMIT`（默认 5）返回 429 临时锁定，成功登录清零；`/api/auth/register` 补用户名≥2/密码≥6 校验，注册按 IP 限流（人机校验阶段量级）。
   - R-C3：`core/security.py` 由单一 72h token 拆为短期 access（`ACCESS_TOKEN_MINUTES=30`，payload 带 `type=access`）+ 可撤销 refresh（`REFRESH_TOKEN_DAYS=7`）；新增 `auth_tokens` 表**只存 sha256 不落明文**；`/api/auth/refresh` 每次旋转（旧 token 置 revoked，记 `last_used_at`），复用/过期/登出（`/api/auth/logout` 撤销）后均拒绝；`routers/auth.py` 增 `RefreshIn/LogoutIn` 请求体。
@@ -254,7 +254,7 @@
   - 偏差：锁定返回码采用 429（与既有聊天限流语义一致，前端可统一提示）；refresh 采用“严格单次使用”旋转（多端同时刷新会互踢，未做宽限期）。
 - 风险触发：无。
 - 遗留：注册人机校验仍为 IP 限流（阶段量级），正式上线建议接验证码/设备指纹；refresh 多端并发场景需宽限期或家族链（当前单端语义）；审计查询无分页（limit≤200 够后台使用，量大后补）；`set_admin.py` 后续可退役。
-- 结论：✅（m46 单测 9 passed；sqlite 120 passed 3 skipped / PG 121 passed 2 skipped / ruff 0；SQLite+PG 迁移 check 无漂移）
+- 结论：✅（m46 单测 9 passed；sqlite 120 passed 3 skipped / PG 121 passed 2 skipped / ruff 0；SQLite+PG 迁移 check 无漂移；CI 远端 success，run 34013390556）
 - 日期：2026-09-06
 ---
 

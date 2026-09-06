@@ -187,6 +187,7 @@
 | ACC-M4-M46-003 | 单测 | R-C5 管理审计：persona/scenario create/update 写 `audit_logs`（admin_user/action/object + before/after 摘要，与业务同事务）；`GET /api/admin/audit` 返回操作者名 | 同上 | 全绿 | 通过 | routers/admin.py（record_admin_audit/admin_list_audit）、models AuditLog | ✅ | 2026-09-06 |
 | ACC-M4-M46-004 | 单测 | R-C6 admin 一次性引导：配置 `ADMIN_BOOTSTRAP_USERNAME/PASSWORD` 且 users 空表 → 启动自动建 admin；表非空或未配置 → 跳过 | 同上 | 全绿 | 通过（空表创建/非空跳过/未配置跳过） | core/admin_bootstrap.py、main.py lifespan | ✅ | 2026-09-06 |
 | ACC-M4-M46-005 | 迁移 | Alembic 0002（c4a2e8f0b1d5）新增 auth_tokens/audit_logs：一次性库 `upgrade head` + `alembic check` 无漂移 | `DATABASE_URL=<sqlite/pg> alembic upgrade head && alembic check` | 无漂移 | PASS（8 关系表齐全，No new upgrade operations detected） | backend/alembic/versions/c4a2e8f0b1d5_m46_*.py | ✅ | 2026-09-06 |
+| ACC-M4-M46-006 | 工程 | CI 质量门：sqlite 全量 + PG 全量 + 迁移 upgrade/check + redis 限流 + docker 镜像 readiness 冒烟 | GitHub Actions push（run 34013390556） | 全绿 | success（1m3s，三 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 | ACC-M4-REG-011 | 单测 | 全量回归（sqlite） | `pytest backend` | 全绿 | 120 passed, 3 skipped in 4.05s | 测试输出 | ✅ | 2026-09-06 |
 | ACC-M4-REG-012 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 121 passed, 2 skipped in 10.19s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
 
