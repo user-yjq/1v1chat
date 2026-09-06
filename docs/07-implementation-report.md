@@ -238,6 +238,24 @@
 - 遗留：跨进程指标聚合/看板需接 Prometheus+Grafana（多 worker 每进程独立）；前端透传 X-Request-Id 建议下一步接（本地生成即可，不强制）；Guard 每轮次数≤2 的看板公式建议按 trace.llm_calls 聚合（数据已具备）。
 - 结论：✅（sqlite 111 passed 3 skipped / PG 112 passed 2 skipped / ruff 0；单测 8 passed；CI docker 冒烟含 metrics 校验 success）
 - 日期：2026-09-06
+
+### RPT-M4-009：M4.6 安全与审计——登录防爆破、refresh 轮换/撤销、管理审计、admin 引导（T-15，2026-09-06）
+
+- 范围：R-C2（登录/注册防爆破）、R-C3（JWT 刷新/撤销）、R-C5（管理动作审计）、R-C6（管理员一次性引导）。
+- 对照：08 §2.3；依赖 M4.3（配置注入基座）。
+- 完成项：ACC-M4-M46-001~005、ACC-M4-REG-011/012。
+- 变更与偏差：
+  - R-C2：`core/ratelimit.py` 新增登录失败计数——进程内滑动窗口（窗口=`LOGIN_LOCK_MINUTES`），配置 `REDIS_URL` 自动走 Redis 固定窗口、异常回退进程内（与聊天限流同策略）；`/api/auth/login` 达 `LOGIN_FAIL_LIMIT`（默认 5）返回 429 临时锁定，成功登录清零；`/api/auth/register` 补用户名≥2/密码≥6 校验，注册按 IP 限流（人机校验阶段量级）。
+  - R-C3：`core/security.py` 由单一 72h token 拆为短期 access（`ACCESS_TOKEN_MINUTES=30`，payload 带 `type=access`）+ 可撤销 refresh（`REFRESH_TOKEN_DAYS=7`）；新增 `auth_tokens` 表**只存 sha256 不落明文**；`/api/auth/refresh` 每次旋转（旧 token 置 revoked，记 `last_used_at`），复用/过期/登出（`/api/auth/logout` 撤销）后均拒绝；`routers/auth.py` 增 `RefreshIn/LogoutIn` 请求体。
+  - R-C5：新增 `audit_logs` 表与 `routers/admin.py record_admin_audit`——persona/scenario 的 create/update 写操作记录 admin_user/action/object_type/object_id + before/after 摘要，**与业务同一事务**（不单独 commit）；新增 `GET /api/admin/audit`（limit≤200）返回操作者名供后台查询；admin 依赖注入改具名 `admin: User`。
+  - R-C6：新增 `core/admin_bootstrap.py`——lifespan 启动时调用：仅当配置 `ADMIN_BOOTSTRAP_USERNAME/PASSWORD` **且 users 表为空**才创建 admin（`is_admin=True`），否则跳过并留日志；替代容器内需手工执行的 `set_admin.py` 场景（脚本保留兼容）。
+  - 配置：`config.py`/`.env.example`/`docker-compose.yml` 同步——移除 `JWT_EXPIRE_HOURS`，新增 `ACCESS_TOKEN_MINUTES/REFRESH_TOKEN_DAYS/LOGIN_FAIL_LIMIT/LOGIN_LOCK_MINUTES/ADMIN_BOOTSTRAP_USERNAME/ADMIN_BOOTSTRAP_PASSWORD`；env 键一致性测试仍绿。
+  - 迁移：Alembic 0002（`c4a2e8f0b1d5`，down_revision=0001）建 `auth_tokens`/`audit_logs`（含唯一 token_hash 索引、外键到 users）；一次性 SQLite/PG 库 `upgrade head` + `alembic check` 均无漂移（CI Migrate 步骤同样覆盖）。
+  - 偏差：锁定返回码采用 429（与既有聊天限流语义一致，前端可统一提示）；refresh 采用“严格单次使用”旋转（多端同时刷新会互踢，未做宽限期）。
+- 风险触发：无。
+- 遗留：注册人机校验仍为 IP 限流（阶段量级），正式上线建议接验证码/设备指纹；refresh 多端并发场景需宽限期或家族链（当前单端语义）；审计查询无分页（limit≤200 够后台使用，量大后补）；`set_admin.py` 后续可退役。
+- 结论：✅（m46 单测 9 passed；sqlite 120 passed 3 skipped / PG 121 passed 2 skipped / ruff 0；SQLite+PG 迁移 check 无漂移）
+- 日期：2026-09-06
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。

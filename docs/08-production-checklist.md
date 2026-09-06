@@ -39,11 +39,11 @@
 | ID | 缺口 | 现状（证据） | 加固建议 | 优先级 | 状态 | 验收方式 |
 |----|------|--------------|----------|--------|------|----------|
 | R-C1 | JWT_SECRET 等生产敏感默认值未拦截 | `backend/config.py` 默认 `change-me`；`docker-compose.yml` 默认 `change-me` | 启动 fail-fast：`APP_ENV=prod` 时检测占位 secret/空 key 直接拒绝启动 | P0 | ✅ | 单测：占位 secret 被拦（test_prod_safety.py） |
-| R-C2 | 登录/注册无防爆破 | `backend/routers/auth.py` 无限流/锁定 | 登录失败限流 + 账户临时锁定；注册接口人机校验（阶段量级） | P1 | ⏸ | 暴力尝试被 429/锁定 |
-| R-C3 | JWT 无刷新/撤销 | `core/security.py` 仅签发 HS256 access token | 短期 access + refresh（可撤销白名单）；或改 httpOnly cookie 会话 | P2 | ⏸ | 退出后旧 token 失效 |
+| R-C2 | 登录/注册无防爆破 | `core/ratelimit.py` 登录失败滑动窗口计数（进程内；配 `REDIS_URL` 自动走 Redis 固定窗口，异常回退进程内）；`/api/auth/login` 达 `LOGIN_FAIL_LIMIT`（默认 5）→ 429 临时锁定（窗口=`LOGIN_LOCK_MINUTES` 默认 15 分钟），成功登录清零；注册补用户名≥2/密码≥6 校验 + 按 IP 限流（人机校验阶段量级） | 正式上线建议接验证码/设备指纹等更强人机校验（当前 IP 限流为阶段量级） | P1 | ✅ | 单测：锁定后 429/成功清零/注册长度与 IP（test_m46_security.py） |
+| R-C3 | JWT 无刷新/撤销 | token 拆为短期 access（`ACCESS_TOKEN_MINUTES=30`，payload 带 `type=access`）+ 可撤销 refresh（`REFRESH_TOKEN_DAYS=7`）；`auth_tokens` 表仅存 sha256；`/api/auth/refresh` 每次旋转旧 token 置 revoked，复用/过期/登出（`/api/auth/logout` 撤销）后均拒绝 | 多端并发刷新会互踢（严格单次使用）；如需多端会话可加轮换宽限期或 refresh 家族链 | P2 | ✅ | 单测：access type/过期、refresh 轮换/复用阻断/登出失效（test_m46_security.py） |
 | R-C4 | CORS/同源策略需按环境注入 | CORS 白名单已配置化（T-13），但生产同源（nginx 反代）时需验证无 `*` 且无多余源 | compose/CI 显式注入 `CORS_ORIGINS`；提供环境校验测试 | P1 | ✅ | prod 含 `*` 即拦（test_prod_safety.py 9 passed）+ compose 注入验证（M4.3） |
-| R-C5 | 管理动作无审计日志 | `backend/routers/admin.py` 直接读写 persona/scenario，无操作者与变更记录 | 后台写操作统一记审计（admin_user/动作/对象/前后摘要/时间） | P1 | ⏸ | 审计表有记录，后台可查 |
-| R-C6 | 管理员引导仅靠脚本 | `backend/set_admin.py` 需人工执行，无法在容器内安全初始化 | 支持 `ADMIN_BOOTSTRAP_USERNAME/PASSWORD` 一次性引导（仅空表时生效） | P2 | ⏸ | 容器启动后可登录 admin |
+| R-C5 | 管理动作无审计日志 | 新增 `audit_logs` 表；`routers/admin.py record_admin_audit`：persona/scenario 的 create/update 写操作记录 admin_user/action/object 与 before/after 摘要（与业务同事务）；`GET /api/admin/audit` 返回操作者名供后台查询 | 审计量大后建议加游标分页/操作者过滤（当前 limit≤200） | P1 | ✅ | 单测：写操作留痕 + 列表含操作者（test_m46_security.py） |
+| R-C6 | 管理员引导仅靠脚本 | 新增 `core/admin_bootstrap.py`：配置 `ADMIN_BOOTSTRAP_USERNAME/PASSWORD` 且 users 表为空 → lifespan 自动建 admin（is_admin）；表非空或未配置自动跳过；`set_admin.py` 保留兼容 | 生产首次初始化后建议清空引导凭据环境变量（防重放/误用） | P2 | ✅ | 单测：空表创建/非空跳过/未配置跳过（test_m46_security.py）；CI 容器冒烟可启动 |
 | R-C7 | /media 全公开静态，无内容策略 | `backend/main.py` mount StaticFiles；素材白名单已满足 NFR-DATA-1，但目录内文件全部公开 | 维持白名单资产公开；若未来引入用户上传，改对象存储 + 签名 URL | P2 | ⏸ | 安全评审通过 |
 
 ### 2.4 可观测性
@@ -85,7 +85,7 @@
 | M4.3 | 敏感默认值 fail-fast + 环境配置注入 + 单版本源 | — | R-C1/C4/E2/E3 | 单测 + 配置对照表 |
 | M4.4 | Docker 加固 + Makefile/依赖单入口修正（CI 质量门已随 R-E1 落地） | — | R-E5/E6（R-D4 readiness 部分） | PR 门禁 + 镜像构建冒烟（CI docker job）✅ |
 | M4.5 | 观测：request-id、指标、结构化日志、readiness | M4.2 | R-D1~D4 | 看板与日志样例 ✅（/api/metrics + JSON 日志 + readiness 探测） |
-| M4.6 | 管理审计 + token 刷新/撤销 + 登录防爆破 | M4.3 | R-C2/C3/C5/C6 | 安全边界用例绿 |
+| M4.6 | 管理审计 + token 刷新/撤销 + 登录防爆破 | M4.3 | R-C2/C3/C5/C6 | 安全边界用例绿 ✅（sqlite 120 passed / PG 121 passed，m46 单测 9） |
 | M4.7 | 合规披露 UI + flags 红线记录 + 隐私条款 + 删除/导出 | — | R-F1~F3/B7 | 合规评审通过 |
 | M4.8 | 数据保留策略 + 游标分页 + state 迁移策略 | M4.1 | R-B5/B4/B7 | 压测与迁移演练 |
 | M4.9 | v0.5 候选收口：默认 v2、双引擎回归、回滚演练、部署文档 | 上述全部 | R-E4 及全部 | 台账+部署文档，打 v0.5 tag |
@@ -112,6 +112,6 @@
 ## 6. 状态速览
 
 - 本表为 M4 阶段一评审基线：共 31 项缺口，其中 P0 7 项（R-A1、R-B1、R-B2、R-C1、R-D2、R-E1、R-F1）。
-- 已落地：R-C1 ✅、R-B3 ✅、R-B6 ✅（备份/恢复演练 PASS + 保留策略 03 §16）、R-E1 ✅（CI 多次 success）、R-E2 ✅、R-E3 ✅；M4.1：R-B1 ✅、R-B2 ✅；M4.2：R-A1 ✅、R-A3 ✅；M4.3：R-C4 ✅；M4.4：R-E5 ✅、R-E6 ✅；M4.5：R-D1 ✅、R-D2 ✅、R-D3 ✅、R-D4 ✅。
-- 实施记录：M4.1 PG+Alembic（RPT-M4-003）；M4.2 跨 worker 会话锁 + Redis 限流（RPT-M4-004）；M4.3 prod CORS 校验 + env/compose 键一致（RPT-M4-005）；M4.4 Docker 加固 + Makefile/依赖单入口（RPT-M4-006）；R-B6 PG 备份/恢复演练与保留策略（RPT-M4-007）；M4.5 观测（request-id/指标/结构化日志/readiness）（RPT-M4-008）。
+- 已落地：R-C1 ✅、R-B3 ✅、R-B6 ✅（备份/恢复演练 PASS + 保留策略 03 §16）、R-E1 ✅（CI 多次 success）、R-E2 ✅、R-E3 ✅；M4.1：R-B1 ✅、R-B2 ✅；M4.2：R-A1 ✅、R-A3 ✅；M4.3：R-C4 ✅；M4.4：R-E5 ✅、R-E6 ✅；M4.5：R-D1 ✅、R-D2 ✅、R-D3 ✅、R-D4 ✅；M4.6：R-C2 ✅、R-C3 ✅、R-C5 ✅、R-C6 ✅。
+- 实施记录：M4.1 PG+Alembic（RPT-M4-003）；M4.2 跨 worker 会话锁 + Redis 限流（RPT-M4-004）；M4.3 prod CORS 校验 + env/compose 键一致（RPT-M4-005）；M4.4 Docker 加固 + Makefile/依赖单入口（RPT-M4-006）；R-B6 PG 备份/恢复演练与保留策略（RPT-M4-007）；M4.5 观测（request-id/指标/结构化日志/readiness）（RPT-M4-008）；M4.6 安全与审计（登录防爆破/refresh 轮换撤销/管理审计/admin 引导）（RPT-M4-009）。
 - 每完成一项：回填本节状态 → 06 台账登记 → 07 实施报告追加 → 更新 00/04 看板。

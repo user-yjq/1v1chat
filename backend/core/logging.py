@@ -63,3 +63,7 @@ def configure_logging(level: int = logging.INFO) -> logging.Logger:
         logger._json_configured = True  # type: ignore[attr-defined]
     logging.getLogger("uvicorn.access").disabled = True
     return logger
+
+
+def get_logger(name: str = "1v1chat") -> logging.Logger:
+    return configure_logging() if name == "1v1chat" else logging.getLogger(name)

@@ -37,7 +37,17 @@ class Settings(BaseSettings):
     # JWT
     JWT_SECRET: str = "change-me"
     JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRE_HOURS: int = 72
+    # 短期 access（分钟）+ refresh（天）分离（M4.6 R-C3）
+    ACCESS_TOKEN_MINUTES: int = 30
+    REFRESH_TOKEN_DAYS: int = 7
+
+    # 登录防爆破（M4.6 R-C2）
+    LOGIN_FAIL_LIMIT: int = 5
+    LOGIN_LOCK_MINUTES: int = 15
+
+    # 管理员一次性引导（M4.6 R-C6；仅空表时生效）
+    ADMIN_BOOTSTRAP_USERNAME: str = ""
+    ADMIN_BOOTSTRAP_PASSWORD: str = ""
 
     # 静态媒体目录（AI 发送的照片/头像放在这里，以 /media 路由访问）
     MEDIA_DIR: str = "./media"

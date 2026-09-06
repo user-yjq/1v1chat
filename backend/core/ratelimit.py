@@ -19,6 +19,7 @@ except ImportError:  # pragma: no cover - 未安装 redis-py 时仅用进程内�
 
 _WINDOW_S = 60.0
 _hits: dict[str, deque] = defaultdict(deque)
+_login_hits: dict[str, deque] = defaultdict(deque)
 _lock = threading.Lock()
 _client = None
 
@@ -71,10 +72,84 @@ def check_chat_rate(user_id: int) -> None:
         raise HTTPException(status_code=429, detail="消息太频繁了，稍等一下再发")
 
 
+# --- 登录防爆破（M4.6 R-C2）------------------------------------------------- #
+def _login_window_s() -> float:
+    return max(60.0, float(settings.LOGIN_LOCK_MINUTES) * 60.0)
+
+
+def _login_fail_limit() -> int:
+    return max(1, int(settings.LOGIN_FAIL_LIMIT))
+
+
+def _local_login_count(identity: str, window: float, incr: bool) -> int:
+    now = time.monotonic()
+    with _lock:
+        bucket = _login_hits[identity]
+        while bucket and now - bucket[0] > window:
+            bucket.popleft()
+        if incr:
+            bucket.append(now)
+        return len(bucket)
+
+
+def _login_redis_count(client, identity: str, window: float, incr: bool) -> int:
+    """Redis 固定窗口计数；异常回退进程内（与聊天限流同策略）。"""
+    key = f"rl:loginfail:{identity}"
+    try:
+        if incr:
+            count = int(client.incr(key))
+            if count == 1:
+                client.expire(key, int(window) + 1)
+            return count
+        val = client.get(key)
+        return int(val) if val else 0
+    except Exception:  # noqa: BLE001
+        return _local_login_count(identity, window, incr)
+
+
+def login_failure_count(identity: str) -> int:
+    window = _login_window_s()
+    client = _redis()
+    if client is not None:
+        return _login_redis_count(client, identity, window, incr=False)
+    return _local_login_count(identity, window, incr=False)
+
+
+def record_login_failure(identity: str) -> int:
+    window = _login_window_s()
+    client = _redis()
+    if client is not None:
+        return _login_redis_count(client, identity, window, incr=True)
+    return _local_login_count(identity, window, incr=True)
+
+
+def reset_login_failures(identity: str) -> None:
+    with _lock:
+        _login_hits.pop(identity, None)
+    client = _redis()
+    if client is not None:
+        try:
+            client.delete(f"rl:loginfail:{identity}")
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def login_is_locked(identity: str) -> bool:
+    """连续失败达到阈值即临时锁定（滑动窗口=LOGIN_LOCK_MINUTES）。"""
+    return login_failure_count(identity) >= _login_fail_limit()
+
+
+def check_register_rate(ip: str) -> None:
+    """注册人机校验（阶段量级）：按 IP 限流，后续可换验证码。"""
+    if not _allow(f"reg:{ip}", 20):
+        raise HTTPException(status_code=429, detail="注册太频繁，请稍后再试")
+
+
 def reset() -> None:
     """测试用：清空进程内计数与 Redis 键。"""
     with _lock:
         _hits.clear()
+        _login_hits.clear()
     client = _redis()
     if client is None:
         return

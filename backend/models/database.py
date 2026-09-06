@@ -122,6 +122,34 @@ class Message(Base):
     conversation = relationship("Conversation", back_populates="messages")
 
 
+class AuthToken(Base):
+    """可撤销 refresh token（M4.6 R-C3）：只存 sha256，不落明文。"""
+
+    __tablename__ = "auth_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    token_hash = Column(String(64), unique=True, index=True, nullable=False)
+    expires_at = Column(DateTime, nullable=False, index=True)
+    revoked = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_used_at = Column(DateTime, nullable=True)
+
+
+class AuditLog(Base):
+    """管理动作审计（M4.6 R-C5）：写操作留痕（操作者/动作/对象/前后摘要）。"""
+
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    admin_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    action = Column(String(64), nullable=False)
+    object_type = Column(String(32), nullable=False)
+    object_id = Column(Integer, nullable=True)
+    detail = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
 def as_dict(obj):
     """通用 ORM → dict（用于 trace/响应拼接）"""
     data = {c.name: getattr(obj, c.name) for c in obj.__table__.columns}

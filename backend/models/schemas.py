@@ -33,6 +33,7 @@ class UserOut(_Orm):
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    refresh_token: str = ""
     user: UserOut
 
 

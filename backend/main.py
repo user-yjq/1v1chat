@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from config import settings, validate_prod_settings
+from core.admin_bootstrap import bootstrap_admin_if_configured
 from core.logging import configure_logging
 from core.metrics import render as render_metrics
 from core.middleware import ObservabilityMiddleware
@@ -30,6 +31,8 @@ async def lifespan(app: FastAPI):
         run_migrations()
     else:
         init_db()
+    # M4.6 R-C6：配置了 ADMIN_BOOTSTRAP_* 且 users 空表时创建管理员
+    bootstrap_admin_if_configured()
     yield
 
 

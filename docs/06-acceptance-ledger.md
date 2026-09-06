@@ -182,6 +182,13 @@
 | ACC-M4-M45-005 | 工程 | `/api/metrics` 暴露 Prometheus 文本；CI docker 冒烟增加 metrics 校验 | workflow 审阅 | 可运行 | CI 远端 success（run 34012369544） | .github/workflows/ci.yml（GitHub Actions runs） | ✅ | 2026-09-06 |
 | ACC-M4-REG-009 | 单测 | 全量回归（sqlite） | `pytest backend` | 全绿 | 111 passed, 3 skipped in 2.22s | 测试输出 | ✅ | 2026-09-06 |
 | ACC-M4-REG-010 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 112 passed, 2 skipped in 6.25s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
+| ACC-M4-M46-001 | 单测 | R-C2 登录防爆破：登录失败滑动窗口计数（进程内/Redis 双后端），达 `LOGIN_FAIL_LIMIT`（默认 5）后锁定、正确密码仍 429（窗口=`LOGIN_LOCK_MINUTES`）；成功登录清零；注册用户名≥2/密码≥6 校验 + 按 IP 注册限流 | `pytest tests/engine2_core/test_m46_security.py` | 全绿 | 9 passed in 2.77s | core/ratelimit.py、routers/auth.py（login/register） | ✅ | 2026-09-06 |
+| ACC-M4-M46-002 | 单测 | R-C3 token 分离与撤销：access 短期（30min，payload 带 type=access）；refresh 7 天、`auth_tokens` 只存 sha256；刷新轮换旧 token 置 revoked；复用/过期/登出撤销后均拒绝 | 同上 | 全绿 | 通过（access type/过期、轮换/复用阻断、revoke） | core/security.py、models AuthToken、routers/auth.py（/refresh、/logout） | ✅ | 2026-09-06 |
+| ACC-M4-M46-003 | 单测 | R-C5 管理审计：persona/scenario create/update 写 `audit_logs`（admin_user/action/object + before/after 摘要，与业务同事务）；`GET /api/admin/audit` 返回操作者名 | 同上 | 全绿 | 通过 | routers/admin.py（record_admin_audit/admin_list_audit）、models AuditLog | ✅ | 2026-09-06 |
+| ACC-M4-M46-004 | 单测 | R-C6 admin 一次性引导：配置 `ADMIN_BOOTSTRAP_USERNAME/PASSWORD` 且 users 空表 → 启动自动建 admin；表非空或未配置 → 跳过 | 同上 | 全绿 | 通过（空表创建/非空跳过/未配置跳过） | core/admin_bootstrap.py、main.py lifespan | ✅ | 2026-09-06 |
+| ACC-M4-M46-005 | 迁移 | Alembic 0002（c4a2e8f0b1d5）新增 auth_tokens/audit_logs：一次性库 `upgrade head` + `alembic check` 无漂移 | `DATABASE_URL=<sqlite/pg> alembic upgrade head && alembic check` | 无漂移 | PASS（8 关系表齐全，No new upgrade operations detected） | backend/alembic/versions/c4a2e8f0b1d5_m46_*.py | ✅ | 2026-09-06 |
+| ACC-M4-REG-011 | 单测 | 全量回归（sqlite） | `pytest backend` | 全绿 | 120 passed, 3 skipped in 4.05s | 测试输出 | ✅ | 2026-09-06 |
+| ACC-M4-REG-012 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 121 passed, 2 skipped in 10.19s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
 
 ## 6. 后续登记区
 
