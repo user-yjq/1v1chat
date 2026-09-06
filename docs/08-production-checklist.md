@@ -50,10 +50,10 @@
 
 | ID | 缺口 | 现状（证据） | 加固建议 | 优先级 | 状态 | 验收方式 |
 |----|------|--------------|----------|--------|------|----------|
-| R-D1 | trace 有落库但无请求关联与汇聚 | `agent_trace` 落在最后一条 AI 消息（`routers/chat.py`）；无 request-id 串联前端→后端→LLM | 中间件注入 `X-Request-Id` 并写入 trace；日志/DB 可关联 | P1 | ⏸ | 一个会话可串出完整链路 |
-| R-D2 | 无运行指标 | 无 LLM 调用量/延迟/失败/Guard 拦截率/兜底率/破功样例计数 | 进程内计数器 + `/metrics`（或导出到观测平台）；Guard 命中抽样入指标 | P0 | ⏸ | 看板可观察关键指标 |
-| R-D3 | 无结构化日志/脱敏 | 依赖 uvicorn 默认日志；用户消息明文 | logging 结构化输出（JSON），内容字段脱敏/截断；错误堆栈带 request-id | P1 | ⏸ | 日志查询样例 |
-| R-D4 | 健康检查不查 DB/LLM 依赖 | `main.py /api/health` 只回固定 ok | 拆分 liveness（进程）与 readiness（DB + 上游配置探测） | P2 | 🚧 | DB 停库后 ready 503（M4.4 已落地）；LLM 上游探测 + request-id 链路留 M4.5 |
+| R-D1 | trace 有落库但无请求关联与汇聚 | `ObservabilityMiddleware` 注入/透传 `X-Request-Id`（scope.state + 响应头）；`routers/chat.py` 把 request_id 写入 `agent_trace`；日志同 id | 前端可透传 X-Request-Id 打通 前端→后端→LLM 链路 | P1 | ✅ | 单测：scope/响应头/上下文一致（test_observability.py） |
+| R-D2 | 无运行指标 | `core/metrics.py` 进程内计数（LLM 调用/失败/延迟、Guard blocked/rewrote/fallback/sampled、HTTP 请求/耗时）+ `/api/metrics`（Prometheus 文本，无新依赖）；多 worker 各进程独立 | 如需跨进程聚合接 Prometheus 抓取多实例 | P0 | ✅ | 单测 render 断言 + CI docker smoke 校验 metrics 文本 |
+| R-D3 | 无结构化日志/脱敏 | `core/logging.py`：应用 logger 单行 JSON（time/level/logger/message/request_id + extra 白名单）；uvicorn access 关闭防重复；**日志不含消息正文** | 内容字段一律不入日志；错误栈带 request_id | P1 | ✅ | 单测：白名单外字段不出现（test_observability.py） |
+| R-D4 | 健康检查不查 DB/LLM 依赖 | liveness `/api/health` 与 readiness `/api/health/ready` 拆分：readiness=DB `SELECT 1`（硬条件）+ LLM 上游**配置**探测（mock/真实 key，不发网络） | DB 断→503 unavailable；LLM 未配真实 key→200 degraded | P2 | ✅ | 单测：db down→unavailable；auto 无 key→degraded；CI docker smoke ready 200 |
 
 ### 2.5 部署 / CI / 发布一致性
 
@@ -84,7 +84,7 @@
 | M4.2 | 多 worker 会话写者模型 + 限流外置 | M4.1 | R-A1/A3 | 双 worker 并发压测通过 |
 | M4.3 | 敏感默认值 fail-fast + 环境配置注入 + 单版本源 | — | R-C1/C4/E2/E3 | 单测 + 配置对照表 |
 | M4.4 | Docker 加固 + Makefile/依赖单入口修正（CI 质量门已随 R-E1 落地） | — | R-E5/E6（R-D4 readiness 部分） | PR 门禁 + 镜像构建冒烟（CI docker job）✅ |
-| M4.5 | 观测：request-id、指标、结构化日志、readiness | M4.2 | R-D1~D4 | 看板与日志样例 |
+| M4.5 | 观测：request-id、指标、结构化日志、readiness | M4.2 | R-D1~D4 | 看板与日志样例 ✅（/api/metrics + JSON 日志 + readiness 探测） |
 | M4.6 | 管理审计 + token 刷新/撤销 + 登录防爆破 | M4.3 | R-C2/C3/C5/C6 | 安全边界用例绿 |
 | M4.7 | 合规披露 UI + flags 红线记录 + 隐私条款 + 删除/导出 | — | R-F1~F3/B7 | 合规评审通过 |
 | M4.8 | 数据保留策略 + 游标分页 + state 迁移策略 | M4.1 | R-B5/B4/B7 | 压测与迁移演练 |
@@ -112,6 +112,6 @@
 ## 6. 状态速览
 
 - 本表为 M4 阶段一评审基线：共 31 项缺口，其中 P0 7 项（R-A1、R-B1、R-B2、R-C1、R-D2、R-E1、R-F1）。
-- 已落地：R-C1 ✅、R-B3 ✅、R-B6 ✅（备份/恢复演练 PASS + 保留策略 03 §16）、R-E1 ✅（CI 多次 success）、R-E2 ✅、R-E3 ✅；M4.1：R-B1 ✅、R-B2 ✅；M4.2：R-A1 ✅、R-A3 ✅；M4.3：R-C4 ✅；M4.4：R-E5 ✅、R-E6 ✅；R-D4 🚧（readiness DB 探测已落地，上游探测/链路留 M4.5）。
-- 实施记录：M4.1 PG+Alembic（RPT-M4-003）；M4.2 跨 worker 会话锁 + Redis 限流（RPT-M4-004）；M4.3 prod CORS 校验 + env/compose 键一致（RPT-M4-005）；M4.4 Docker 加固 + Makefile/依赖单入口（RPT-M4-006）；R-B6 PG 备份/恢复演练与保留策略（RPT-M4-007）。
+- 已落地：R-C1 ✅、R-B3 ✅、R-B6 ✅（备份/恢复演练 PASS + 保留策略 03 §16）、R-E1 ✅（CI 多次 success）、R-E2 ✅、R-E3 ✅；M4.1：R-B1 ✅、R-B2 ✅；M4.2：R-A1 ✅、R-A3 ✅；M4.3：R-C4 ✅；M4.4：R-E5 ✅、R-E6 ✅；M4.5：R-D1 ✅、R-D2 ✅、R-D3 ✅、R-D4 ✅。
+- 实施记录：M4.1 PG+Alembic（RPT-M4-003）；M4.2 跨 worker 会话锁 + Redis 限流（RPT-M4-004）；M4.3 prod CORS 校验 + env/compose 键一致（RPT-M4-005）；M4.4 Docker 加固 + Makefile/依赖单入口（RPT-M4-006）；R-B6 PG 备份/恢复演练与保留策略（RPT-M4-007）；M4.5 观测（request-id/指标/结构化日志/readiness）（RPT-M4-008）。
 - 每完成一项：回填本节状态 → 06 台账登记 → 07 实施报告追加 → 更新 00/04 看板。

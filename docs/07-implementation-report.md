@@ -222,6 +222,22 @@
 - 遗留：备份定时任务需在真实部署环境启用 cron（本沙箱仅演示）；R-B7 用户删除/导出落地后回填 16.1 删除口径；SQLite 开发库备份为手动拷贝 data 文件（不设脚本）。
 - 结论：✅（演练 PASS：6 表行数 src==dst；产物含 sha256；bash -n 通过）
 - 日期：2026-09-06
+
+### RPT-M4-008：M4.5 观测——request-id、指标、结构化日志、readiness（T-15，2026-09-06）
+
+- 范围：R-D1（请求关联）、R-D2（运行指标）、R-D3（结构化日志/脱敏）、R-D4（readiness 补全）。
+- 对照：08 §3 M4.5；依赖 M4.4（readiness DB 探测已就绪）。
+- 完成项：ACC-M4-M45-001~005、ACC-M4-REG-009/010（CI metrics 校验待远端实跑后回填）。
+- 变更与偏差：
+  - R-D1：新增 `core/middleware.py ObservabilityMiddleware`（纯 ASGI，不依赖 BaseHTTPMiddleware）——读取/生成 `X-Request-Id`，写入 `scope.state` 与响应头，设置 contextvar 供日志关联；`routers/chat.py` 将 `request_id` 写入 `agent_trace`（DB 侧按消息可串链路）。
+  - R-D2：新增 `core/metrics.py`（threading.Lock + dict，无第三方依赖，Prometheus 文本渲染）；`llm/provider.py` 对 `generate`/`extract_json` 打点（成功/失败/延迟），`guard.py` 每轮上报 blocked/rewrote/fallback/sampled，中间件记录 HTTP 请求量/耗时；新增 `GET /api/metrics`（`text/plain; version=0.0.4`）。MockLLM 同样计数（mock 模式也能看调用量）。
+  - R-D3：新增 `core/logging.py`——`1v1chat` logger 单行 JSON（time/level/logger/message/request_id + extra 白名单），**正文/昵称等非白名单字段一律不进日志**；`uvicorn.access` 关闭避免与 JSON 重复；异常栈带 request_id。handler 在模块导入时挂载，幂等。
+  - R-D4 补全：readiness 拆为 liveness `/api/health` + readiness `/api/health/ready`（`readiness_report`：DB `SELECT 1` 为硬条件；LLM 为**配置**探测 `llm_config_report()`——mock 或真实 key 为 ready，auto+占位 key 降级 degraded 不阻塞 200，避免 dev 缺省配置把容器标红）。
+  - 偏差：HTTP 链路验证在单测用伪 ASGI 应用做（沙箱不可开 HTTP/线程池）；真实容器链路由 CI docker 冒烟覆盖（ready 200 + metrics 文本校验）。
+- 风险触发：无。
+- 遗留：跨进程指标聚合/看板需接 Prometheus+Grafana（多 worker 每进程独立）；前端透传 X-Request-Id 建议下一步接（本地生成即可，不强制）；Guard 每轮次数≤2 的看板公式建议按 trace.llm_calls 聚合（数据已具备）。
+- 结论：✅（sqlite 111 passed 3 skipped / PG 112 passed 2 skipped / ruff 0；单测 8 passed）
+- 日期：2026-09-06
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。

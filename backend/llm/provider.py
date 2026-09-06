@@ -6,9 +6,11 @@ LLM Provider（方案 C：单次生成）
 """
 import hashlib
 import json
+import time
 
 import httpx
 from config import settings
+from core import metrics
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 
@@ -19,6 +21,18 @@ class BaseLLM:
     async def extract_json(self, system: str, user: str) -> dict | None:
         """结构化输出；不可用时返回 None（调用方走规则降级）。"""
         return None
+
+
+async def _record_llm_call(kind: str, coro):
+    """LLM 调用计时打点（M4.5 R-D2）：成功/失败都计数，异常原样上抛。"""
+    started = time.perf_counter()
+    try:
+        result = await coro
+        metrics.record_llm_call(kind, time.perf_counter() - started, ok=True)
+        return result
+    except Exception:
+        metrics.record_llm_call(kind, time.perf_counter() - started, ok=False)
+        raise
 
 
 class MockLLM(BaseLLM):
@@ -37,7 +51,9 @@ class MockLLM(BaseLLM):
     async def generate(self, system: str, user: str) -> str:
         h = hashlib.md5((system + user).encode("utf-8")).hexdigest()
         idx = int(h[:4], 16) % len(self._lines)
-        return self._lines[idx]
+        text = self._lines[idx]
+        metrics.record_llm_call("chat", 0.0, ok=True)
+        return text
 
     # extract_json 继承 BaseLLM：返回 None → Analyzer 走规则降级
 
@@ -80,7 +96,7 @@ class RemoteLLM(BaseLLM):
             "max_tokens": self.max_tokens,
             "stream": False,
         }
-        return await self._post(payload)
+        return await _record_llm_call("chat", self._post(payload))
 
     async def extract_json(self, system: str, user: str) -> dict | None:
         """尝试 JSON 模式结构化输出；解析失败一律返回 None（不抛异常）。"""
@@ -94,10 +110,13 @@ class RemoteLLM(BaseLLM):
             "max_tokens": 800,
             "stream": False,
         }
+        started = time.perf_counter()
         try:
             content = await self._post(payload)
         except Exception:
+            metrics.record_llm_call("json", time.perf_counter() - started, ok=False)
             return None
+        metrics.record_llm_call("json", time.perf_counter() - started, ok=True)
         start, end = content.find("{"), content.rfind("}")
         if start < 0 or end <= start:
             return None
@@ -122,3 +141,19 @@ def build_llm() -> BaseLLM:
 
 def is_mock_llm() -> bool:
     return isinstance(build_llm(), MockLLM)
+
+
+def llm_config_report() -> dict:
+    """readiness 上游配置探测（R-D4）：mode/真实 key 是否就绪；不发起真实网络调用。"""
+    mode = (settings.LLM_MODE or "auto").strip().lower()
+    key = (settings.DEEPSEEK_API_KEY or "").strip()
+    if mode == "mock":
+        return {"mode": mode, "ready": True, "detail": "LLM_MODE=mock（离线确定性回复）", "model": "mock"}
+    if key and key != "sk-placeholder" and not key.startswith("sk-your"):
+        return {"mode": mode, "ready": True, "detail": "DEEPSEEK_API_KEY 已配置", "model": settings.DEEPSEEK_MODEL}
+    return {
+        "mode": mode,
+        "ready": False,
+        "detail": f"LLM_MODE={mode} 但 DEEPSEEK_API_KEY 缺失或为占位，实际将回退 MockLLM",
+        "model": "mock",
+    }

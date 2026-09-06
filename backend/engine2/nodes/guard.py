@@ -7,6 +7,7 @@
 import random
 import re
 
+from core import metrics as app_metrics
 from engine2.defaults import pick_fallback
 from engine2.nodes.actor import generate_reply
 
@@ -106,4 +107,10 @@ async def guard(ctx) -> dict:
 
     ctx.scratch["actions_out"] = actions
     ctx.scratch["guard"] = info
+    app_metrics.record_guard(
+        blocked=info["blocked"],
+        rewrote=info["rewrote"],
+        fallback=info["used_fallback"],
+        sampled=info["sampled"],
+    )
     return {}

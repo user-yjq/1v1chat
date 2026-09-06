@@ -5,13 +5,19 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from config import settings, validate_prod_settings
+from core.logging import configure_logging
+from core.metrics import render as render_metrics
+from core.middleware import ObservabilityMiddleware
 from db.database import db_is_ready, init_db, run_migrations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
+from llm.provider import llm_config_report
 from routers import admin_router, auth_router, chat_router, conversation_router, personas_router
 from version import APP_VERSION
+
+configure_logging()
 
 
 @asynccontextmanager
@@ -42,6 +48,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(ObservabilityMiddleware)
 
 app.include_router(auth_router)
 app.include_router(chat_router)
@@ -61,9 +68,30 @@ def health():
 
 @app.get("/api/health/ready")
 def health_ready():
-    """readiness（M4.4 R-E5）：DB 可连通才返回 200；否则 503 供编排层摘流/重启。"""
-    ok = db_is_ready()
-    return JSONResponse(
-        content={"status": "ok" if ok else "unavailable", "service": "1v1chat", "version": APP_VERSION},
-        status_code=200 if ok else 503,
-    )
+    """readiness（R-D4）：DB 连通为硬条件；LLM 为配置探测（不发起真实网络调用）。"""
+    report = readiness_report()
+    status_code = 503 if report["status"] == "unavailable" else 200
+    return JSONResponse(content=report, status_code=status_code)
+
+
+def readiness_report(db_target=None) -> dict:
+    db_ok = db_is_ready(db_target)
+    llm = llm_config_report()
+    if not db_ok:
+        status = "unavailable"
+    elif llm["ready"]:
+        status = "ok"
+    else:
+        status = "degraded"
+    return {
+        "status": status,
+        "service": "1v1chat",
+        "version": APP_VERSION,
+        "checks": {"db": db_ok, "llm": llm},
+    }
+
+
+@app.get("/api/metrics", include_in_schema=False)
+def metrics_endpoint():
+    """Prometheus 文本指标（M4.5 R-D2）；按进程独立计数。"""
+    return PlainTextResponse(render_metrics(), media_type="text/plain; version=0.0.4")

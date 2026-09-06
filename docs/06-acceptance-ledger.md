@@ -175,6 +175,13 @@
 | ACC-M4-B6-001 | 集成 | 备份/恢复演练 PASS：建一次性源库 → alembic 迁移 → 插标记数据 → `backup_pg.sh` → 恢复到一次性目标库 → 逐表行数比对 | `ADMIN_DATABASE_URL=<pg> PG_DOCKER=1v1chat-pg ./scripts/drill_pg_backup_restore.sh` | 6 表行数一致 | PASS（alembic_version/conversations/messages/personas/scenarios/users 全一致） | backups/*.dump + sha256；scripts/drill_pg_backup_restore.sh | ✅ | 2026-09-06 |
 | ACC-M4-B6-002 | 工程 | 备份/恢复脚本：`backup_pg.sh`（pg_dump -Fc+sha256+30 天轮转）、`restore_pg.sh`（CONFIRM_RESTORE=1 + 同名库拒覆）；支持 SQLAlchemy URL 与 `PG_DOCKER` 容器模式 | `bash -n` + 演练实测 | 语法/逻辑正确 | 通过 | scripts/backup_pg.sh、scripts/restore_pg.sh | ✅ | 2026-09-06 |
 | ACC-M4-B6-003 | 文档 | 数据保留/备份/恢复策略落地（保留语义、RPO/RTO 目标、cron 示例） | 文档评审 | 与代码一致 | 通过 | docs/03 §16 | ✅ | 2026-09-06 |
+| ACC-M4-M45-001 | 单测 | request-id：中间件注入/透传 scope.state+响应头、日志上下文；`agent_trace` 写入 request_id | `pytest test_observability.py` | 全绿 | 8 passed in 1.15s | core/middleware.py、core/logging.py、routers/chat.py | ✅ | 2026-09-06 |
+| ACC-M4-M45-002 | 单测 | 结构化日志：单行 JSON + extra 白名单脱敏（消息正文/昵称不入日志）；uvicorn access 关闭 | 同上 | 全绿 | 通过 | core/logging.py JsonFormatter | ✅ | 2026-09-06 |
+| ACC-M4-M45-003 | 单测 | 指标：LLM 调用/失败/延迟、Guard 事件、HTTP 请求计数 + Prometheus 文本；MockLLM 调用自动打点 | 同上 | 全绿 | 通过 | core/metrics.py、llm/provider.py、engine2/nodes/guard.py | ✅ | 2026-09-06 |
+| ACC-M4-M45-004 | 单测 | readiness R-D4 完成：DB 断→unavailable(503)；auto 无 key→degraded；mock→ok | `test_readiness_*` | 全绿 | 通过 | main.py readiness_report + llm_config_report | ✅ | 2026-09-06 |
+| ACC-M4-M45-005 | 工程 | `/api/metrics` 暴露 Prometheus 文本；CI docker 冒烟增加 metrics 校验 | workflow 审阅 | 可运行 | 待 GitHub 远端验证 | .github/workflows/ci.yml | 🚧 | 2026-09-06 |
+| ACC-M4-REG-009 | 单测 | 全量回归（sqlite） | `pytest backend` | 全绿 | 111 passed, 3 skipped in 2.22s | 测试输出 | ✅ | 2026-09-06 |
+| ACC-M4-REG-010 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 112 passed, 2 skipped in 6.25s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
 
 ## 6. 后续登记区
 

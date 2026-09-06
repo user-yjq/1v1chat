@@ -9,7 +9,7 @@ from config import settings
 from core.ratelimit import check_chat_rate
 from core.security import get_current_user
 from db.database import get_db
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from models.database import Conversation, Message, User
 from models.schemas import ChatResponse, MessageOut
 from pydantic import BaseModel
@@ -70,6 +70,7 @@ def _acquire_turn_lock(db: Session, conversation_id: int) -> None:
 @router.post("/send", response_model=ChatResponse)
 async def send_message(
     payload: _ChatPayload,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -101,6 +102,9 @@ async def send_message(
         detail = str(exc)
         raise HTTPException(status_code=400 if "过长" in detail else 404,
                             detail=detail) from None
+
+    # M4.5 R-D1：request-id 写入 trace，日志/DB 可按同一会话串出完整链路
+    trace["request_id"] = getattr(request.state, "request_id", "-")
 
     ai_msgs: list[Message] = []
     for idx, plan in enumerate(ai_plans):

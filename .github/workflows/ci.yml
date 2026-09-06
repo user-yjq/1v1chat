@@ -111,4 +111,5 @@ jobs:
           done
           [ "$code" = "200" ] || { echo "readiness 未在 30s 内 200"; exit 1; }
           curl -fsS http://127.0.0.1:18000/api/health
+          curl -fsS http://127.0.0.1:18000/api/metrics | grep -q '^chat_http_requests_total'
           docker rm -f 1v1chat-smoke >/dev/null
