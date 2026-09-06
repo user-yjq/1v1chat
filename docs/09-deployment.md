@@ -26,6 +26,12 @@ open http://127.0.0.1:3000      # 前端（/api 已反代）
 
 本地裸跑：`make install && make seed && make backend`（8000）+ `make frontend`（5173）。
 
+> 构建源与运行环境说明：
+> - 两个 Dockerfile 的依赖安装走 uv（backend，装 `backend/requirements.txt` 单一源）与 npm `ci`（frontend，按 lockfile）；
+>   默认国内镜像源（阿里云 PyPI/apt、npmmirror），海外/CI 可用 `docker build --build-arg PIP_INDEX_URL=... --build-arg APT_MIRROR=... --build-arg NPM_REGISTRY=... --build-arg UV_VERSION=...` 覆盖（见各 Dockerfile 头注释）。
+> - `docker compose` 会读取项目根 `.env` 做变量插值；若该 `.env` 是本地裸跑用的开发值（如 `sqlite:///./1v1chat.db`、`redis://localhost`），容器会拿到容器内不可用的地址——请用 shell 环境变量覆盖（如 `DATABASE_URL=sqlite:///./data/1v1chat.db REDIS_URL= docker compose up -d`）或按 `.env.example` 配置。
+> - 镜像以非 root（uid 10001）运行；`.dockerignore` 排除所有层级的 `.env`，运行期密钥一律经 compose/部署环境注入，不烧进镜像。
+
 ## 3. 部署前必改配置（对照 08 R-C1/C2/C3/C5/C6）
 
 | 项 | 键 | 说明 |

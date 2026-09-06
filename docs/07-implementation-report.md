@@ -394,6 +394,26 @@
 - 日期：2026-09-06
 ---
 
+### RPT-M5-007：镜像构建链改造（uv+国内镜像源）与 compose 容器实例走查（2026-09-06）
+
+- 范围：让 `docker compose up --build` 在本机（阿里云国际出口受限）可复现完成，并把“部署实例”从文档推进到真实容器运行证据（ACC-M5-M54-009/010）。
+- 起因：原 Dockerfile 用官方源 `pip install`，本机 buildkit 网络下 20 分钟卡在依赖下载；用户提出应改用 uv 并在 Dockerfile 内置国内镜像源。
+- 变更与偏差：
+  - `backend/Dockerfile`：ARG 默认阿里云 apt/PyPI 源 + `UV_VERSION=0.12.9`；pip 仅装 uv，运行时依赖改由 `uv pip install --system --no-cache -r backend/requirements.txt`（54 包 ~3.5s）；新增 `chmod -R a+rX /app/backend`（防宿主 600/700 权限源被 COPY 后 uid 10001 不可读——首次构建即因此 unhealthy）。
+  - `frontend/Dockerfile`：ARG `NPM_REGISTRY` 默认 npmmirror；构建层改写 lockfile 的 `resolved` 域名后 `npm ci --no-audit --no-fund`（153 包 ~10s，锁文件源码不改）。
+  - `.dockerignore`：新增 `**/.env`/`**/.env.*`——`backend/.env`（本地 600 权限遗留）此前会进镜像导致非 root 启动 `PermissionError`。
+  - `docs/09` §2 补充构建源覆盖与 `.env` 插值注意事项。
+- 过程问题（均定位并修复）：
+  1. 官方源 pip 构建卡死 → 换 uv+镜像源后秒级完成；
+  2. 镜像内 `.env` root 600 → 非 root 读不了（PermissionError）；
+  3. 宿主 45 个 py 为 600 → 容器内 10001 读不了源码；
+  4. 根 `.env` 开发值（相对 sqlite/`localhost` redis）经 compose 插值进容器不可用 → 容器安全默认值需 shell 覆盖或按 `.env.example`。
+- 部署结果：`1v1chat-backend`（8000，healthy，LLM_MODE=mock）+ `1v1chat-frontend`（3000，nginx，200）；容器内 `seed.py` 灌入 4 人设后 `walkthrough_live.py --archive-dir evidence/` **22 步 0 硬失败 exit 0**，证据 sha256 `147d0979` 开头。
+- 遗留：真模型评测仍需公网可达的 `DEEPSEEK_API_KEY`（本机对 api.deepseek.com 出网受限，walkthrough 以 mock 模式完成容器侧全部硬断言）；人工 4 人设/压测读数待回填。
+- 结论：✅（compose 一键构建启动 + 容器内 22/22 走查 PASS）
+- 日期：2026-09-06
+---
+
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。
