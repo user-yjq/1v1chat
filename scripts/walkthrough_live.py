@@ -21,7 +21,12 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from datetime import UTC, datetime
+
+try:
+    from datetime import UTC, datetime
+except ImportError:  # pragma: no cover - Python < 3.11
+    from datetime import datetime, timezone
+    UTC = timezone.utc  # noqa: UP017
 
 DEFAULT_PASSWORD = "walkthrough-2026"
 _LIVENESS_RE = re.compile(

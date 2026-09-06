@@ -366,6 +366,20 @@
 - 日期：2026-09-06
 ---
 
+### RPT-M5-005：M5.4 走查工具本地 mock 自检（2026-09-06）
+
+- 范围：在本地用真实 HTTP 栈验证 `scripts/walkthrough_live.py` 本身可运行、断言口径与后端一致（mock 模式，不依赖公网/key）。
+- 对照：docs/10 §3 自动断言清单、ACC-M5-M54-001~003。
+- 变更与偏差：
+  - 本地演练：`seed.py` 建临时 sqlite（/tmp/wt_walkthrough.db）+ `LLM_MODE=mock` 起 uvicorn:18000 → `walkthrough_live.py` 全跑。
+  - 结果：**22 步 0 硬失败 exit 0**：readiness/meta、注册、4 人设（小雨 friendly/桃桃 instant/阿静 dangle/雪儿 red_packet）真模型回合（agent_trace 落库）、照片策略探针（instant 出图、其余 3 模式不出图）、会话/账号导出（无内部字段）、账号删除闭环（旧 token 401、他号不受影响）、AI 露馅扫描 0 命中。报告归档 `evidence/walkthrough-mock-2026-09-06.json`。
+  - 兼容修正：`datetime.UTC` 需 Python≥3.11；脚本加 `try/except ImportError` 回退 `timezone.utc`（# noqa: UP017）以支持 3.10；本机系统 `python3` 为 3.6.8（低于项目下限），明确执行前置=Python 3.11（docs/10 §2 已写）。
+- 风险触发：无（脚本首跑即通，仅环境解释器版本兼容微调）。
+- 遗留：真实公网环境执行（ACC-M5-M54-003）与人工 4 人设评审/压测读数待回填。
+- 结论：✅（mock 全链路 22/22 PASS，exit 0；ruff 0）
+- 日期：2026-09-06
+---
+
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。

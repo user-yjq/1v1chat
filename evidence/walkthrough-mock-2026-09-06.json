@@ -1,0 +1,234 @@
+{
+  "generated_at": "2026-09-06T07:35:13+00:00",
+  "total": 22,
+  "hard_fails": 0,
+  "records": [
+    {
+      "step": "readiness",
+      "level": "PASS",
+      "ok": true,
+      "hard": true,
+      "detail": "GET /api/health/ready -> 200",
+      "evidence": {
+        "status": "ok",
+        "service": "1v1chat",
+        "version": "0.5.0",
+        "checks": {
+          "db": true,
+          "llm": {
+            "mode": "mock",
+            "ready": true,
+            "detail": "LLM_MODE=mock（离线确定性回复）",
+            "model": "mock"
+          }
+        }
+      },
+      "at": "2026-09-06T07:35:12+00:00"
+    },
+    {
+      "step": "meta/disclosure",
+      "level": "PASS",
+      "ok": true,
+      "hard": true,
+      "detail": "GET /api/meta -> 200, disclosure.text 非空",
+      "evidence": {
+        "enabled": true,
+        "text": "对面是AI扮演的虚拟角色，仅供角色扮演/销售陪练/反诈演练等实验用途，请勿当真，不要进行真实交易或转账。"
+      },
+      "at": "2026-09-06T07:35:12+00:00"
+    },
+    {
+      "step": "注册用户U1",
+      "level": "PASS",
+      "ok": true,
+      "hard": true,
+      "detail": "POST /api/auth/register wt_1788680112900 有 token",
+      "evidence": null,
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "人设列表",
+      "level": "PASS",
+      "ok": true,
+      "hard": true,
+      "detail": "选 4 个人设走查",
+      "evidence": [
+        "小雨",
+        "桃桃",
+        "阿静",
+        "雪儿"
+      ],
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "persona[小雨(friendly)] 开场+真模型回合",
+      "level": "PASS",
+      "ok": true,
+      "hard": true,
+      "detail": "latency 21ms, ai_msgs=1, agent_trace=有",
+      "evidence": {
+        "latency_ms": 21
+      },
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "persona[小雨(friendly)] 照片策略[friendly]",
+      "level": "PASS",
+      "ok": true,
+      "hard": true,
+      "detail": "图片消息=无（期望 不发图）",
+      "evidence": null,
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "persona[小雨(friendly)] 开场白落库",
+      "level": "PASS",
+      "ok": true,
+      "hard": false,
+      "detail": "首条 AI 开场白=有",
+      "evidence": null,
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "persona[桃桃(instant)] 开场+真模型回合",
+      "level": "PASS",
+      "ok": true,
+      "hard": true,
+      "detail": "latency 14ms, ai_msgs=1, agent_trace=有",
+      "evidence": {
+        "latency_ms": 14
+      },
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "persona[桃桃(instant)] 照片策略[instant]",
+      "level": "PASS",
+      "ok": true,
+      "hard": true,
+      "detail": "图片消息=有（期望 发图）",
+      "evidence": null,
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "persona[桃桃(instant)] 开场白落库",
+      "level": "PASS",
+      "ok": true,
+      "hard": false,
+      "detail": "首条 AI 开场白=有",
+      "evidence": null,
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "persona[阿静(dangle)] 开场+真模型回合",
+      "level": "PASS",
+      "ok": true,
+      "hard": true,
+      "detail": "latency 14ms, ai_msgs=1, agent_trace=有",
+      "evidence": {
+        "latency_ms": 14
+      },
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "persona[阿静(dangle)] 照片策略[dangle]",
+      "level": "PASS",
+      "ok": true,
+      "hard": true,
+      "detail": "图片消息=无（期望 不发图）",
+      "evidence": null,
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "persona[阿静(dangle)] 开场白落库",
+      "level": "PASS",
+      "ok": true,
+      "hard": false,
+      "detail": "首条 AI 开场白=有",
+      "evidence": null,
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "persona[雪儿(red_packet)] 开场+真模型回合",
+      "level": "PASS",
+      "ok": true,
+      "hard": true,
+      "detail": "latency 14ms, ai_msgs=1, agent_trace=有",
+      "evidence": {
+        "latency_ms": 14
+      },
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "persona[雪儿(red_packet)] 照片策略[red_packet]",
+      "level": "PASS",
+      "ok": true,
+      "hard": true,
+      "detail": "图片消息=无（期望 不发图）",
+      "evidence": null,
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "persona[雪儿(red_packet)] 开场白落库",
+      "level": "PASS",
+      "ok": true,
+      "hard": false,
+      "detail": "首条 AI 开场白=有",
+      "evidence": null,
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "会话级导出",
+      "level": "PASS",
+      "ok": true,
+      "hard": true,
+      "detail": "GET /api/conversations/4/export -> 200, 无内部字段=True, 有消息=True",
+      "evidence": null,
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "账号级导出",
+      "level": "PASS",
+      "ok": true,
+      "hard": true,
+      "detail": "GET /api/me/data -> 200, conversations=4",
+      "evidence": null,
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "AI 露馅扫描",
+      "level": "PASS",
+      "ok": true,
+      "hard": false,
+      "detail": "疑似自我暴露 0 条（review）",
+      "evidence": null,
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "账号删除闭环",
+      "level": "PASS",
+      "ok": true,
+      "hard": true,
+      "detail": "DELETE /api/me/data -> {'ok': True, 'deleted_conversations': 0, 'deleted_messages': 0}, 旧token后=401:True, U1 不受影响=True",
+      "evidence": null,
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "admin 只读抽查",
+      "level": "PASS",
+      "ok": true,
+      "hard": false,
+      "detail": "未配置，跳过",
+      "evidence": null,
+      "at": "2026-09-06T07:35:13+00:00"
+    },
+    {
+      "step": "清理 U1",
+      "level": "PASS",
+      "ok": true,
+      "hard": false,
+      "detail": "DELETE /api/me/data -> 200（--keep-data 可保留样本）",
+      "evidence": null,
+      "at": "2026-09-06T07:35:13+00:00"
+    }
+  ]
+}

@@ -38,7 +38,7 @@
 | T-16 | M5.1 账号级数据权端点（R-B7 收尾）：`GET/DELETE /api/me/data` 导出/删除 | T-15 | M | ✅（5 tests + 双库回归绿，见 RPT-M5-001） | 单测 + 权限/安全边界（ACC-M5-*） |
 | T-17 | M5.2 v1 引擎归档 `_legacy/engine_v1/` + 转发层保回滚（R-E4/CB-2） | T-15 | S | ✅（git mv 保历史 + 转发层模块别名；旧测/parity/回滚演练 + 双库回归绿，见 RPT-M5-002） | 归档边界 ACC-M5-M52-* |
 | T-18 | M5.3 前端账户数据入口（导出/删除按钮接 /api/me/data） | T-16 | S | ✅（vue-tsc + vite build 通过，见 RPT-M5-003） | 前端 build + 人工走查（ACC-M5-M53-*） |
-| T-19 | M5.4 上线验收走查工具与手册（walkthrough_live.py + docs/10，真实环境执行项） | T-16 | M | 🚧 工具就绪（ruff/py_compile 绿）；线上执行待公网环境 | scripts/walkthrough_live.py + docs/10 |
+| T-19 | M5.4 上线验收走查工具与手册（walkthrough_live.py + docs/10，真实环境执行项） | T-16 | M | 🚧 工具就绪 + mock 全链路自检 22/22 PASS（ACC-M5-M54-005）；线上执行待公网环境 | scripts/walkthrough_live.py + docs/10 + evidence/ |
 
 ## 3. 文档驱动流程（每个任务必走）
 
