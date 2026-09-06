@@ -203,7 +203,8 @@
   - 偏差说明：本机 Docker Hub 直连不可达（仅加速源，pip 拉取极慢），backend 镜像本地构建超时取消——镜像构建与冒烟验收交由 CI docker job 执行（GitHub runner 网络正常），本地仅完成 `docker compose config` 解析与单测/静态断言。
 - 风险触发：无。
 - 遗留：R-B6 备份/恢复演练 ⏸；R-D4 剩余（LLM 上游探测、request-id 串联）与 R-D1~D3 属 M4.5；CI actions 仍提示 Node 20 deprecation（checkout@v4/setup-python@v5），仅警告不影响通过，建议后续随 action 大版本一起升级。
-- 结论：✅（sqlite 103 passed 3 skipped / PG 104 passed 2 skipped / ruff 0 / make lint+test 通过；CI docker job 待远端实跑确认）
+- 遗留：main 分支 required checks（PR 门禁强制化）需仓库 admin 在 GitHub 设置开启——当前 PAT 无 branch-protection 权限（HTTP 403），已具备 CI 全 job 绿但未强制。
+- 结论：✅（sqlite 103 passed 3 skipped / PG 104 passed 2 skipped / ruff 0 / make lint+test 通过；CI 含 docker 镜像构建+readiness 冒烟已远端 success）
 - 日期：2026-09-06
 ---
 

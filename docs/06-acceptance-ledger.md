@@ -167,7 +167,7 @@
 | ACC-M4-REG-006 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 98 passed, 2 skipped in 6.44s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
 | ACC-M4-M44-001 | 单测 | readiness：`db_is_ready` 正常引擎 True / 断连 False；`/api/health` 与 `/api/health/ready` 路由注册 | `pytest test_m44_release.py` | 全绿 | 6 passed in 1.87s | backend/db/database.py、backend/main.py、test_m44_release.py | ✅ | 2026-09-06 |
 | ACC-M4-M44-002 | 工程 | Docker 加固：backend 非 root（`USER 10001`）、数据/媒体 named volume、compose healthcheck 对齐 `/api/health/ready`、nginx 去 `/ws/` 死代理 | 静态断言 + `docker compose config` | 通过 | 通过 | backend/Dockerfile、docker-compose.yml、frontend/nginx.conf | ✅ | 2026-09-06 |
-| ACC-M4-M44-003 | 工程 | 镜像构建冒烟：根/frontend `.dockerignore` + CI docker job（双镜像 build + ready 200 冒烟） | workflow/文件审阅 | 可运行 | 待 GitHub 远端验证 | .github/workflows/ci.yml | 🚧 | 2026-09-06 |
+| ACC-M4-M44-003 | 工程 | 镜像构建冒烟：根/frontend `.dockerignore` + CI docker job（双镜像 build + ready 200 冒烟） | workflow/文件审阅 | 可运行 | CI 远端 success（job 51s） | .github/workflows/ci.yml（GitHub Actions run 34011005647） | ✅ | 2026-09-06 |
 | ACC-M4-M44-004 | 工程 | Makefile 重写为单一依赖入口（pyproject + backend/requirements.txt），删除根 requirements.txt；test/lint 直走 `.venv` | `make lint` / `make test` + 单测锁定依赖集合 | 全绿 | lint/test 通过；一致性 6 passed | Makefile、backend/requirements.txt、test_m44_release.py | ✅ | 2026-09-06 |
 | ACC-M4-M44-005 | 边界 | R-D4 部分落地：DB 断连 → readiness 503（单元级 connect 异常 → False） | `test_db_is_ready_false_when_connect_fails` | False 不抛 | 通过 | backend/main.py `health_ready` | 🚧 | 2026-09-06 |
 | ACC-M4-REG-007 | 单测 | 全量回归（sqlite） | `pytest backend` | 全绿 | 103 passed, 3 skipped in 2.44s | 测试输出 | ✅ | 2026-09-06 |
