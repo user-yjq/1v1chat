@@ -234,6 +234,13 @@
 | ACC-M5-REG-004 | 集成 | 全量回归（PostgreSQL）
 | ACC-M5-M52-003 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 | GitHub Actions push（run 34016707176） | 全绿 | success（1m6s，三 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 | | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 149 passed, 2 skipped in 14.28s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
 
+### M5.3：T-18 前端账户数据入口（M5.1 端点 UI 接线，2026-09-06）
+
+| ID | 类型 | 验收项 | 方法 | 预期 | 结果 | 证据 | 结论 | 日期 |
+|-----|------|--------|------|------|------|------|------|------|
+| ACC-M5-M53-001 | 走查 | 前端账户数据入口：侧栏“数据”弹窗接 `GET/DELETE /api/me/data`（导出 JSON 下载；删除需勾选+二次确认） | `npm run build`（vue-tsc + vite） | 构建通过 | built in 6.27s | src/components/AccountDataDialog.vue、src/App.vue | ✅ | 2026-09-06 |
+| ACC-M5-M53-002 | 安全/权限 | 请求复用 Bearer token（userStore.api）；删除成功即登出回 `/login`；越权/401 边界由后端保证（ACC-M5-M51-002） | 代码审阅 + M5.1 后端单测 | 无 token 泄漏 | 通过 | src/stores/user.ts、AccountDataDialog.vue | ✅ | 2026-09-06 |
+
 ## 6. 后续登记区
 
 自 M1 起，每任务完成后按 §1/§2 追加记录。模板：

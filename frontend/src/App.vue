@@ -41,6 +41,7 @@
           <div class="flex items-center gap-2">
             <button v-if="userStore.userInfo?.is_admin" @click="router.push('/admin')" class="text-gray-400 hover:text-brand-600 text-sm" title="管理后台">后台</button>
             <button @click="logout" class="text-gray-400 hover:text-red-500 text-sm" title="退出">登出</button>
+            <button @click="showAccountData = true" class="text-gray-400 hover:text-brand-600 text-sm" title="导出/删除我的数据">数据</button>
           </div>
         </div>
       </div>
@@ -50,6 +51,7 @@
     <main class="flex-1 flex flex-col">
       <router-view />
     </main>
+  <AccountDataDialog v-if="showAccountData" @close="showAccountData = false" />
   </div>
 </template>
 
@@ -58,6 +60,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useConversationStore } from '@/stores/conversation'
+import AccountDataDialog from '@/components/AccountDataDialog.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -65,6 +68,7 @@ const convStore = useConversationStore()
 
 const conversations = ref<any[]>([])
 const currentConvId = ref<number | null>(null)
+const showAccountData = ref(false)
 
 const formatTime = (t: string) => {
   if (!t) return ''

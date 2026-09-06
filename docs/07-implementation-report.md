@@ -336,6 +336,21 @@
 - 日期：2026-09-06
 ---
 
+### RPT-M5-003：M5.3 前端账户数据入口——侧栏“数据”弹窗（T-18，2026-09-06）
+
+- 范围：M5.1 端点（GET/DELETE /api/me/data）的前端用户入口，补全数据权 UI 闭环。
+- 对照：03 §16.1、M5.1（RPT-M5-001）；Terms/Privacy 页数据权文案（M4.7）此前无入口。
+- 完成项：ACC-M5-M53-001/002。
+- 变更与偏差：
+  - 新增 `frontend/src/components/AccountDataDialog.vue`：导出区（GET /api/me/data → Blob 下载 `1v1chat-data-YYYY-MM-DD.json`）+ 删除区（勾选“不可恢复”+ 二次点击确认后 DELETE /api/me/data，成功即 logout 并回 `/login`）。
+  - `App.vue` 用户区新增“数据”按钮，弹窗由父组件 v-if 控制；所有请求走 `userStore.api`（自动带 Bearer token），不新增明文凭据/独立 fetch。
+  - 删除不可逆与共享目录保留的文案在 UI 明示，与后端语义一致。
+- 风险触发：无。
+- 遗留：真实浏览器端人工走查（登录→导出→删除→401）待部署环境补；本次以 vue-tsc/vite 构建 + 后端单测作为静态证据。
+- 结论：✅（`npm run build` 通过：vue-tsc 类型检查 0 错 + vite built in 6.27s；后端未改动）
+- 日期：2026-09-06
+---
+
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。
