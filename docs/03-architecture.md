@@ -243,7 +243,7 @@ backend/engine/ + chat_engine.py   # 冻结不动；切 v2 稳定后归档 backe
 ### 12.2 settings 新增字段（文档先行，T-03 实现）
 
 ```python
-ENGINE_VERSION: str = "v1"          # v1 旧引擎 / v2 engine2
+ENGINE_VERSION: str = "v2"          # v2=engine2（v0.5 默认）；回滚设 v1
 TURN_TIMEOUT_S: float = 20.0
 ACTOR_MAX_TOKENS: int = 120
 ACTOR_TEMPERATURE: float = 0.9
@@ -260,7 +260,7 @@ STATE_FACTS_MAX: int = 20
 
 - 保留：`/api/chat/send` 请求与 `ChatResponse` 结构；消息 `content_type=image` + `media_url`；`agent_trace` 在 AI 消息上。
 - 变更（v0.3 内）：`agent_trace` 内部结构升级为 v2（含节点耗时/决策摘要），前端不依赖其内部字段。
-- 开关：`ENGINE_VERSION=v1` 走旧服务（默认，直至 v2 全量验收），`v2` 走 engine2；两侧同一套表与种子数据。
+- 开关：v0.5.0 起默认 `ENGINE_VERSION=v2`（engine2）；回滚设 `v1` 走旧服务（一键回滚，见 docs/09 §5）；两侧同一套表与种子数据。
 
 ## 14. 安全设计要点（台账 SEC-* 的依据）
 

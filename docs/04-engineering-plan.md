@@ -10,7 +10,7 @@
 | M1 engine2 骨架 | 节点契约/状态机/pipeline 落地，Mock 全通 | ✅ | tests/engine2_core 全绿；旧 22 tests 仍绿；mock 走查通过 | engine2 + schema + 单测 |
 | M2 接入切换 | HTTP 走 engine2，v1/v2 开关 | ✅ | E2E（真实 uvicorn）v2 通过；v1 一键回滚验证 | chat_engine2 + 路由开关 |
 | M3 真模型调优 | 真人感与剧本质量达标 | 🚧 离线 + 评测基建完成；真模型走查待执行 | 真实模型 4 人设走查 + 试探集通过（台账登记证据） | persona_actor_v2 + 调参记录 |
-| M4 生产化评估 | 工程化缺口清单与加固 | 🚧 加固中（M4.1~M4.8 + R-B6 完成；M4.9 待办） | 队列/网关/Alembic/观测/安全整改项完成并验收 | v0.5 候选版 + 部署文档 |
+| M4 生产化评估 | 工程化缺口清单与加固 | 🚧 加固中（M4.1~M4.9 + R-B6 完成；CI 绿 + tag v0.5.0 待收尾） | 队列/网关/Alembic/观测/安全整改项完成并验收 | v0.5 候选版 + 部署文档 |
 
 ## 2. WBS 任务拆分
 
@@ -33,7 +33,7 @@
 | T-12 | 路由开关 + E2E（v1/v2 对照 + 回滚验证） | T-11 | M | ✅ | E2E + 权限/安全边界 |
 | T-13 | 安全整改：CORS 白名单、限流、消息长度、注入防护用例 | T-12 | M | ✅ | 安全边界 SEC 用例 |
 | T-14 | 真模型调优 + 试探集/对抗评测跑通 | T-13 | L | 🚧 离线 + 工具就绪 | 评测记录（试探集/对抗） |
-| T-15 | M4 生产化缺口清单与加固实施 | T-14 | L | 🚧 加固中（M4.1~M4.8 + R-B6 完成：PG+Alembic、advisory 锁、Redis 限流、prod CORS 校验、env 键一致、Docker 非 root/readiness、Makefile 单依赖入口、PG 备份/恢复演练、request-id/指标/JSON 日志/readiness、登录防爆破/refresh 轮换撤销/管理审计/admin 引导、合规 flags/披露横幅/协议隐私/导出删除、state 读时迁移/消息联合索引+游标分页） | 缺口台账（08）+ 部署与压测记录 |
+| T-15 | M4 生产化缺口清单与加固实施 | T-14 | L | 🚧 加固中（M4.1~M4.9 + R-B6 完成：PG+Alembic、advisory 锁、Redis 限流、prod CORS 校验、env 键一致、Docker 非 root/readiness、Makefile 单依赖入口、PG 备份/恢复演练、request-id/指标/JSON 日志/readiness、登录防爆破/refresh 轮换撤销/管理审计/admin 引导、合规 flags/披露横幅/协议隐私/导出删除、state 读时迁移/消息联合索引+游标分页、默认 v2+回滚演练、version 0.5.0+docs/09 部署手册） | 缺口台账（08）+ 部署手册（09）+ 压测记录 |
 
 ## 3. 文档驱动流程（每个任务必走）
 
@@ -64,7 +64,7 @@
 
 ## 5. 版本与发布策略
 
-- 版本：语义化；当前 `0.4.0-alpha`（运行时单源 `backend/version.py`）。已发布线：`v0.2.0` → `v0.3.0-beta` → `v0.4.0-alpha` → 目标 `v0.5.0`。
+- 版本：语义化；当前 `0.5.0`（运行时单源 `backend/version.py`，v0.5.0 候选收口见 RPT-M4-012）。已发布线：`v0.2.0` → `v0.3.0-beta` → `v0.4.0-alpha` → `v0.5.0`。
 - 分支：`main` 只合已验收代码；开发分支 `feat/engine2-<task>`；每个 task 一个 PR/commit 序列。
 - 标签：M0 打 `v0.2.0`（回滚点）；此后每个里程碑打 tag。
 - 回滚：`ENGINE_VERSION` 切回 v1 + 数据备份（`data/1v1chat.db` 快照）即可回滚。

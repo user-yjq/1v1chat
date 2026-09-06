@@ -62,7 +62,7 @@
 | R-E1 | 无 CI 质量门 | `.github/workflows/ci.yml` 已落地（backend lint+test、postgres/redis service、frontend build） | 每次合入：pytest 全绿 + ruff 0 + 前端 build + 镜像构建冒烟 | P0 | ✅ | CI 远端多次 `success`（sqlite/PG 双跑 + ruff 0 + frontend build） |
 | R-E2 | 版本号三处漂移 | `backend/main.py` 0.3.0-beta / 根 `pyproject.toml` 0.3.0b0 / README v0.4.0-alpha | 单一版本源（`backend/version.py`），pyproject 由测试锁同步 | P1 | ✅ | 单测断言 pyproject==version.py |
 | R-E3 | .env.example 与 compose 键过期/不全 | `.env.example` 残留 EMBEDDING/CHROMA；缺 engine2 全套键（ENGINE_VERSION/LLM_MODE/GUARD_*…）；compose 未注入新键 | 重写 .env.example 覆盖全部配置项；compose 显式传 ENGINE_VERSION、LLM_MODE、GUARD_* | P1 | ✅ | .env.example 25 键与 config.py 对照；compose 注入核心键 |
-| R-E4 | 默认仍跑 v1 引擎 | `backend/config.py ENGINE_VERSION="v1"` | v0.5 验收后默认切 v2，v1 移 `_legacy/`（04 §发布策略） | P1 | ⏸ | 双引擎回归 + 一键回滚演练 |
+| R-E4 | 默认仍跑 v1 引擎 | `ENGINE_VERSION` 默认 `v2`（config/.env.example/compose 三处同步）；v1 保留原位作为回滚点（迁 `_legacy/` 推迟到 v0.5 后清理）；`drill_engine_rollback.py` 同输入跑 v1/v2 各产一轮并落库 PASS | 回滚=ENV 切 v1 + 数据快照（docs/09 §5） | P1 | ✅ | 单测 test_m49_release.py（4 passed）；scripts/drill_engine_rollback.py PASS；双引擎 parity 全绿 |
 | R-E5 | 镜像/容器待加固 | backend 以非 root（`USER 10001`）运行、数据/媒体走 named volume；新增 `/api/health/ready`（DB SELECT 1）并对齐 compose healthcheck；nginx 已去 `/ws/` 死代理；根/frontend `.dockerignore`；CI 新增 docker 镜像构建+readiness 冒烟 job | 保持最小镜像与只读代码目录；bind mount 需对齐 uid 10001 | P2 | ✅ | CI docker job 构建双镜像并 ready 200 冒烟（单测 test_m44_release.py） |
 | R-E6 | Makefile/说明与依赖现状不符 | Makefile 已重写：移除 requirements-py310/langgraph/chromadb/chroma 残留；test/lint 直接走仓库 `.venv`；单一依赖入口=pyproject+`backend/requirements.txt`（根 requirements.txt 已删除）；compose 健康检查对齐 ready | 改动依赖先改 pyproject，再 `make lock` 同步 | P2 | ✅ | `make lint/test` 通过；单测锁定依赖集合一致 |
 
@@ -88,7 +88,7 @@
 | M4.6 | 管理审计 + token 刷新/撤销 + 登录防爆破 | M4.3 | R-C2/C3/C5/C6 | 安全边界用例绿 ✅（sqlite 120 passed / PG 121 passed，m46 单测 9） |
 | M4.7 | 合规披露 UI + flags 红线记录 + 隐私条款 + 删除/导出 | — | R-F1~F3/B7 | 合规评审通过 ✅（披露横幅+/api/meta、flags+admin 可见、Terms/Privacy 页、export/purge；sqlite 131 / PG 132 绿） |
 | M4.8 | 数据保留策略 + 游标分页 + state 迁移策略 | M4.1 | R-B5/B4/B7 | 压测与迁移演练 ✅（state v1→v2 迁移演练 PASS；万级消息 12000 条分页走查 PASS；sqlite 139 / PG 140 绿） |
-| M4.9 | v0.5 候选收口：默认 v2、双引擎回归、回滚演练、部署文档 | 上述全部 | R-E4 及全部 | 台账+部署文档，打 v0.5 tag |
+| M4.9 | v0.5 候选收口：默认 v2、双引擎回归、回滚演练、部署文档 | 上述全部 | R-E4 及全部 | 台账+部署文档，打 v0.5 tag ✅（version 0.5.0、docs/09、sqlite 143 / PG 144 绿、tag v0.5.0） |
 
 ## 4. 提案新增 NFR（**未冻结**，须先评审再进 01）
 
@@ -112,6 +112,6 @@
 ## 6. 状态速览
 
 - 本表为 M4 阶段一评审基线：共 31 项缺口，其中 P0 7 项（R-A1、R-B1、R-B2、R-C1、R-D2、R-E1、R-F1）。
-- 已落地：R-C1 ✅、R-B3 ✅、R-B6 ✅（备份/恢复演练 PASS + 保留策略 03 §16）、R-E1 ✅（CI 多次 success）、R-E2 ✅、R-E3 ✅；M4.1：R-B1 ✅、R-B2 ✅；M4.2：R-A1 ✅、R-A3 ✅；M4.3：R-C4 ✅；M4.4：R-E5 ✅、R-E6 ✅；M4.5：R-D1 ✅、R-D2 ✅、R-D3 ✅、R-D4 ✅；M4.6：R-C2 ✅、R-C3 ✅、R-C5 ✅、R-C6 ✅；M4.7：R-B7 ✅、R-F1 ✅、R-F2 ✅、R-F3 ✅；M4.8：R-B4 ✅、R-B5 ✅。
-- 实施记录：M4.1 PG+Alembic（RPT-M4-003）；M4.2 跨 worker 会话锁 + Redis 限流（RPT-M4-004）；M4.3 prod CORS 校验 + env/compose 键一致（RPT-M4-005）；M4.4 Docker 加固 + Makefile/依赖单入口（RPT-M4-006）；R-B6 PG 备份/恢复演练与保留策略（RPT-M4-007）；M4.5 观测（request-id/指标/结构化日志/readiness）（RPT-M4-008）；M4.6 安全与审计（登录防爆破/refresh 轮换撤销/管理审计/admin 引导）（RPT-M4-009）；M4.7 合规与数据权（披露横幅/meta、flags+admin、Terms/Privacy 页、export/purge）（RPT-M4-010）；M4.8 数据与迁移（state v1→v2 读时迁移/策略、消息联合索引 0003+游标分页、万级走查）（RPT-M4-011）。
+- 已落地：R-C1 ✅、R-B3 ✅、R-B6 ✅（备份/恢复演练 PASS + 保留策略 03 §16）、R-E1 ✅（CI 多次 success）、R-E2 ✅、R-E3 ✅；M4.1：R-B1 ✅、R-B2 ✅；M4.2：R-A1 ✅、R-A3 ✅；M4.3：R-C4 ✅；M4.4：R-E5 ✅、R-E6 ✅；M4.5：R-D1 ✅、R-D2 ✅、R-D3 ✅、R-D4 ✅；M4.6：R-C2 ✅、R-C3 ✅、R-C5 ✅、R-C6 ✅；M4.7：R-B7 ✅、R-F1 ✅、R-F2 ✅、R-F3 ✅；M4.8：R-B4 ✅、R-B5 ✅；M4.9：R-E4 ✅（默认 v2 + 回滚演练）。
+- 实施记录：M4.1 PG+Alembic（RPT-M4-003）；M4.2 跨 worker 会话锁 + Redis 限流（RPT-M4-004）；M4.3 prod CORS 校验 + env/compose 键一致（RPT-M4-005）；M4.4 Docker 加固 + Makefile/依赖单入口（RPT-M4-006）；R-B6 PG 备份/恢复演练与保留策略（RPT-M4-007）；M4.5 观测（request-id/指标/结构化日志/readiness）（RPT-M4-008）；M4.6 安全与审计（登录防爆破/refresh 轮换撤销/管理审计/admin 引导）（RPT-M4-009）；M4.7 合规与数据权（披露横幅/meta、flags+admin、Terms/Privacy 页、export/purge）（RPT-M4-010）；M4.8 数据与迁移（state v1→v2 读时迁移/策略、消息联合索引 0003+游标分页、万级走查）（RPT-M4-011）；M4.9 v0.5 候选收口（默认 v2、回滚演练、version 0.5.0、docs/09 部署手册、tag v0.5.0）（RPT-M4-012）。
 - 每完成一项：回填本节状态 → 06 台账登记 → 07 实施报告追加 → 更新 00/04 看板。

@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     ]
 
     # === engine2（v0.3 起）===
-    ENGINE_VERSION: str = "v1"          # v1=旧引擎 / v2=engine2
+    ENGINE_VERSION: str = "v2"          # v2=engine2（v0.5 默认，R-E4）；v1=旧引擎（一键回滚）
     TURN_TIMEOUT_S: float = 20.0
     ACTOR_MAX_TOKENS: int = 120
     ACTOR_TEMPERATURE: float = 0.9

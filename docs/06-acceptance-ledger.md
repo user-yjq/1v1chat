@@ -204,6 +204,11 @@
 | ACC-M4-M48-005 | 工程 | R-B5 万级消息走查：12000 条/24 页游标分页无缺口，记录首页查询与整页走查耗时 | `PYTHONPATH=backend .venv/bin/python scripts/drill_message_pagination.py` | PASS | PASS（插入 570ms/首页 22ms/整页走查 478ms） | scripts/drill_message_pagination.py | ✅ | 2026-09-06 |
 | ACC-M4-REG-015 | 单测 | 全量回归（sqlite） | `pytest backend` | 全绿 | 139 passed, 3 skipped in 4.41s | 测试输出 | ✅ | 2026-09-06 |
 | ACC-M4-REG-016 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 140 passed, 2 skipped in 13.07s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
+| ACC-M4-M49-001 | 单测 | R-E4 发布开关：默认 `ENGINE_VERSION=v2`（config）；`Settings(ENGINE_VERSION=v1)` 即回滚；.env.example 与 compose 默认 v2 对齐 | `pytest tests/engine2_core/test_m49_release.py` | 全绿 | 4 passed | backend/config.py、.env.example、docker-compose.yml | ✅ | 2026-09-06 |
+| ACC-M4-M49-002 | 集成 | 双引擎回归 + 回滚演练：同输入分别走 v1/v2 均产出回复并落库 | `PYTHONPATH=backend .venv/bin/python scripts/drill_engine_rollback.py` + `pytest test_engine_parity.py` | PASS | PASS（v1/v2 各 1 轮、各 2 条消息落库） | scripts/drill_engine_rollback.py、test_engine_parity.py | ✅ | 2026-09-06 |
+| ACC-M4-M49-003 | 发布 | 版本单一来源提升 0.5.0（version.py ↔ pyproject 同步）；部署手册 docs/09（组件/必改配置/PG/Redis/回滚/发布 checklist） | 版本同步测试 + 文档评审 | 一致 | 通过 | backend/version.py、pyproject.toml、docs/09-deployment.md | ✅ | 2026-09-06 |
+| ACC-M4-REG-017 | 单测 | 全量回归（sqlite，默认 v2） | `pytest backend` | 全绿 | 143 passed, 3 skipped in 4.38s | 测试输出 | ✅ | 2026-09-06 |
+| ACC-M4-REG-018 | 集成 | 全量回归（PostgreSQL，默认 v2） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 144 passed, 2 skipped in 13.24s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
 | ACC-M4-M48-006 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 | GitHub Actions push（run 34014643804） | 全绿 | success（1m4s，三 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 | ACC-M4-M47-006 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 + redis 限流 + docker 冒烟 + 前端 build | GitHub Actions push（run 34014308606） | 全绿 | success（53s，三 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 
