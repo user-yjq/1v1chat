@@ -389,8 +389,8 @@
   - 台账修复：历史提交把 06 表格两处相邻行误挤成一行（ACC-M5-M53-002/003、ACC-M5-M54-005/006），本步按 git 历史（9bc5ba4/942b4e9）还原为独立行，内容未改。
 - 本地复验：seed + `LLM_MODE=mock` 起 uvicorn:18001 → `walkthrough_live.py --archive-dir` 全跑，**22 步 0 硬失败 exit 0**；报告+sha256 归档正常（sha256 348e5bb4 开头）。
 - 风险触发：无。
-- 遗留：公网实例执行（ACC-M5-M54-003）与人工 4 人设/压测读数待回填；本次 push 的 CI run 走查记录待 CI 绿后回填（另立 ACC 行）。
-- 结论：✅（ruff 0 + py_compile OK；本地 22/22 PASS exit 0）
+- 遗留：公网实例执行（ACC-M5-M54-003）与人工 4 人设/压测读数待回填。
+- 结论：✅（ruff 0 + py_compile OK；本地 22/22 PASS exit 0；CI run 34020503881 success）
 - 日期：2026-09-06
 ---
 
