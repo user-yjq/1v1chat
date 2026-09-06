@@ -14,6 +14,7 @@
 清单供人工评审（真模型效果不自动下结论）。详见 docs/10-live-walkthrough.md。
 """
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -123,7 +124,7 @@ def run(args) -> int:
               f"GET /api/meta -> {status}, disclosure.text 非空", disclosure)
     except WalkthroughError as exc:
         check(records, "基础连通", True, False, str(exc))
-        return _finish(records, args.report)
+        return _finish(records, args.report, args.archive_dir)
 
     # 2) 注册主走查账号
     u1 = register(client, args.user_prefix)
@@ -136,7 +137,7 @@ def run(args) -> int:
     if status != 200 or not isinstance(personas, list):
         check(records, "人设列表", True, False,
               f"GET /api/personas -> {status}（需先 seed.py）")
-        return _finish(records, args.report)
+        return _finish(records, args.report, args.archive_dir)
     personas = personas[: args.max_personas]
     check(records, "人设列表", True, len(personas) > 0,
           f"选 {len(personas)} 个人设走查", [p.get("name") for p in personas])
@@ -263,10 +264,10 @@ def run(args) -> int:
         status, _d = client.call("DELETE", "/api/me/data", token=u1["token"])
         check(records, "清理 U1", False, status == 200,
               f"DELETE /api/me/data -> {status}（--keep-data 可保留样本）")
-    return _finish(records, args.report)
+    return _finish(records, args.report, args.archive_dir)
 
 
-def _finish(records: list[dict], report: str) -> int:
+def _finish(records: list[dict], report: str, archive_dir: str = "") -> int:
     fails = [r for r in records if r["hard"] and not r["ok"]]
     summary = {
         "generated_at": _iso(),
@@ -280,6 +281,25 @@ def _finish(records: list[dict], report: str) -> int:
         print("硬失败步骤：")
         for f in fails:
             print(f"  - {f['step']}: {f['detail']}")
+    if archive_dir:
+        os.makedirs(archive_dir, exist_ok=True)
+        name = f"walkthrough-{time.strftime('%Y%m%d-%H%M%S')}.json"
+        dst = os.path.join(archive_dir, name)
+        with open(dst, "w", encoding="utf-8") as fh:
+            json.dump(summary, fh, ensure_ascii=False, indent=2)
+        digest = hashlib.sha256()
+        with open(dst, "rb") as fh:
+            for chunk in iter(lambda: fh.read(65536), b""):
+                digest.update(chunk)
+        sha = digest.hexdigest()
+        with open(dst + ".sha256", "w", encoding="utf-8") as fh:
+            fh.write(f"{sha}  {name}\n")
+        print(f"[archive] 证据: {dst}")
+        print(f"[archive] sha256: {sha}")
+        print("[archive] 台账回填参考：")
+        print(f"  ACC 结果列: 走查 {len(records)} 步 / 硬失败 {len(fails)}（exit "
+              f"{'1' if fails else '0'}）")
+        print(f"  证据列: {dst}（sha256 {sha[:8]}）")
     return 1 if fails else 0
 
 
@@ -292,6 +312,8 @@ def main(argv=None) -> int:
     ap.add_argument("--keep-data", action="store_true", help="走查后不删除 U1 数据")
     ap.add_argument("--report", default=os.environ.get(
         "WT_REPORT", f"walkthrough-report-{time.strftime('%Y%m%d-%H%M%S')}.json"))
+    ap.add_argument("--archive-dir", default=os.environ.get("WT_ARCHIVE_DIR", ""),
+                    help="把报告与 sha256 归档到该目录（供台账引用）")
     ap.add_argument("--admin-user", default=os.environ.get("ADMIN_USERNAME", ""))
     ap.add_argument("--admin-pass", default=os.environ.get("ADMIN_PASSWORD", ""))
     args = ap.parse_args(argv)

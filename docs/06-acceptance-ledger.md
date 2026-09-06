@@ -239,8 +239,8 @@
 | ID | 类型 | 验收项 | 方法 | 预期 | 结果 | 证据 | 结论 | 日期 |
 |-----|------|--------|------|------|------|------|------|------|
 | ACC-M5-M53-001 | 走查 | 前端账户数据入口：侧栏“数据”弹窗接 `GET/DELETE /api/me/data`（导出 JSON 下载；删除需勾选+二次确认） | `npm run build`（vue-tsc + vite） | 构建通过 | built in 6.27s | src/components/AccountDataDialog.vue、src/App.vue | ✅ | 2026-09-06 |
-| ACC-M5-M53-002 | 安全/权限
-| ACC-M5-M53-003 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 + 前端 build | GitHub Actions push（run 34017121421） | 全绿 | success（1m34s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 | | 请求复用 Bearer token（userStore.api）；删除成功即登出回 `/login`；越权/401 边界由后端保证（ACC-M5-M51-002） | 代码审阅 + M5.1 后端单测 | 无 token 泄漏 | 通过 | src/stores/user.ts、AccountDataDialog.vue | ✅ | 2026-09-06 |
+| ACC-M5-M53-002 | 安全/权限 | 请求复用 Bearer token（userStore.api）；删除成功即登出回 `/login`；越权/401 边界由后端保证（ACC-M5-M51-002） | 代码审阅 + M5.1 后端单测 | 无 token 泄漏 | 通过 | src/stores/user.ts、AccountDataDialog.vue | ✅ | 2026-09-06 |
+| ACC-M5-M53-003 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 + 前端 build | GitHub Actions push（run 34017121421） | 全绿 | success（1m34s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 
 ### M5.4：T-19 上线验收走查工具与手册（2026-09-06，真实环境执行待回填）
 
@@ -250,8 +250,9 @@
 | ACC-M5-M54-002 | 走查 | 手册成文：前置条件/自动断言清单/人工真模型评测矩阵（FR-03~06、红线）/压测大纲（p95<3s、同会话并发、分页、429） | 文档评审 | 与 01/09 一致 | 成文（docs/10，91 行） | docs/10-live-walkthrough.md | ✅ 成文 | 2026-09-06 |
 | ACC-M5-M54-003 | E2E | 真实环境执行：walkthrough_live 全绿 + 人工 4 人设走查 + 压测读数 | 在公网实例运行 §3 命令 | exit 0 | 待执行 | evidence/*.json | ⏸ 待线上执行 | — |
 | ACC-M5-M54-004 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 + 前端 build（含脚本 ruff 检查） | GitHub Actions push（run 34018239569） | 全绿 | success（1m13s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
-| ACC-M5-M54-005 | 走查 | 走查脚本本地 mock 全链路自检
-| ACC-M5-M54-006 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 + 前端 build | GitHub Actions push（run 34019766930） | 全绿 | success（59s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |：seed + uvicorn(sqlite/mock) 起真实 HTTP，22 步含照片策略/导出/删除闭环全 PASS | `python scripts/walkthrough_live.py --base-url http://127.0.0.1:18000` | exit 0 | 22 步 0 硬失败（exit 0） | evidence/walkthrough-mock-2026-09-06.json（sha256 0ee2853f 开头） | ✅ | 2026-09-06 |
+| ACC-M5-M54-005 | 走查 | 走查脚本本地 mock 全链路自检：seed + uvicorn(sqlite/mock) 起真实 HTTP，22 步含照片策略/导出/删除闭环全 PASS | `python scripts/walkthrough_live.py --base-url http://127.0.0.1:18000` | exit 0 | 22 步 0 硬失败（exit 0） | evidence/walkthrough-mock-2026-09-06.json（sha256 0ee2853f 开头） | ✅ | 2026-09-06 |
+| ACC-M5-M54-006 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 + 前端 build | GitHub Actions push（run 34019766930） | 全绿 | success（59s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
+| ACC-M5-M54-007 | 工程 | 走查脚本增强：`--archive-dir` 自动归档报告+sha256，打印“台账回填参考”（供线上验收证据留痕） | ruff + py_compile + 本地 mock 复验（uvicorn:18001 + `--archive-dir`） | ruff 0 / exit 0 | ruff OK；22 步 0 硬失败 exit 0，归档+sha256 正常 | evidence/walkthrough-20260906-155439.json（sha256 348e5bb4 开头） | ✅ | 2026-09-06 |
 
 ## 6. 后续登记区
 

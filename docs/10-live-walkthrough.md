@@ -28,6 +28,10 @@ python scripts/walkthrough_live.py --base-url https://chat.example.com \
 python scripts/walkthrough_live.py --base-url https://chat.example.com \
     --admin-user admin --admin-pass '***' --keep-data \
     --report ./out/live-walkthrough-keep.json
+
+# 自动归档证据（报告 JSON + sha256 落盘，供 06 台账引用）
+python scripts/walkthrough_live.py --base-url https://chat.example.com \
+    --archive-dir ./evidence/live
 ```
 
 自动断言清单（与 06 台账 ACC-M5-M54-* 对应）：

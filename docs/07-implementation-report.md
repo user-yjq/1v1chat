@@ -380,6 +380,20 @@
 - 日期：2026-09-06
 ---
 
+### RPT-M5-006：M5.4 走查工具证据归档增强（--archive-dir，2026-09-06）
+
+- 范围：为 `walkthrough_live.py` 增加 `--archive-dir`：走完自动把报告 JSON 写入目标目录并生成 `.sha256`，同时打印“台账回填参考”（步数/硬失败/exit/证据路径/sha256 前 8 位），让线上验收证据可直接落盘留痕引用。
+- 对照：docs/10 §3 自动断言清单、06 §1（证据=命令原文+输出摘要+文件）、ACC-M5-M54-005。
+- 变更与偏差：
+  - `scripts/walkthrough_live.py`：新增 argparse `--archive-dir`（默认读 `WT_ARCHIVE_DIR`）+ `_finish` 归档分支（hashlib 流式 sha256、UTF-8 写出、打印回填参考）。
+  - 台账修复：历史提交把 06 表格两处相邻行误挤成一行（ACC-M5-M53-002/003、ACC-M5-M54-005/006），本步按 git 历史（9bc5ba4/942b4e9）还原为独立行，内容未改。
+- 本地复验：seed + `LLM_MODE=mock` 起 uvicorn:18001 → `walkthrough_live.py --archive-dir` 全跑，**22 步 0 硬失败 exit 0**；报告+sha256 归档正常（sha256 348e5bb4 开头）。
+- 风险触发：无。
+- 遗留：公网实例执行（ACC-M5-M54-003）与人工 4 人设/压测读数待回填；本次 push 的 CI run 走查记录待 CI 绿后回填（另立 ACC 行）。
+- 结论：✅（ruff 0 + py_compile OK；本地 22/22 PASS exit 0）
+- 日期：2026-09-06
+---
+
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。
