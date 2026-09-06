@@ -204,6 +204,7 @@
 | ACC-M4-M48-005 | 工程 | R-B5 万级消息走查：12000 条/24 页游标分页无缺口，记录首页查询与整页走查耗时 | `PYTHONPATH=backend .venv/bin/python scripts/drill_message_pagination.py` | PASS | PASS（插入 570ms/首页 22ms/整页走查 478ms） | scripts/drill_message_pagination.py | ✅ | 2026-09-06 |
 | ACC-M4-REG-015 | 单测 | 全量回归（sqlite） | `pytest backend` | 全绿 | 139 passed, 3 skipped in 4.41s | 测试输出 | ✅ | 2026-09-06 |
 | ACC-M4-REG-016 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 140 passed, 2 skipped in 13.07s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
+| ACC-M4-M48-006 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 | GitHub Actions push（run 34014643804） | 全绿 | success（1m4s，三 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 | ACC-M4-M47-006 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 + redis 限流 + docker 冒烟 + 前端 build | GitHub Actions push（run 34014308606） | 全绿 | success（53s，三 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 
 ## 6. 后续登记区
