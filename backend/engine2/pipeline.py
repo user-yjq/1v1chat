@@ -7,6 +7,7 @@ import time
 from typing import Any
 
 from engine2 import ENGINE2_VERSION
+from engine2.compliance import compliance as compliance_node
 from engine2.defaults import pick_fallback
 from engine2.nodes.actor import act
 from engine2.nodes.analyzer import analyze, regex_analyze
@@ -21,6 +22,7 @@ _NODES: list[tuple[str, Any]] = [
     ("decide", decide),
     ("act", act),
     ("guard", guard),
+    ("compliance", compliance_node),
 ]
 
 _LOCKS: dict[int, asyncio.Lock] = {}
@@ -105,4 +107,7 @@ async def _run_unlocked(ctx: TurnContext) -> tuple[dict, list[dict], dict]:
     trace["decisions"] = ctx.scratch.pop("decision", {})
     trace["guard"] = ctx.scratch.pop("guard", {})
     trace["primary"] = (ctx.scratch.get("analysis") or {}).get("primary", "casual")
+    compliance = ctx.scratch.pop("compliance", None)
+    if compliance:
+        trace["compliance"] = compliance
     return state, actions, trace

@@ -1,11 +1,12 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-100 to-blue-50">
     <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-      <div class="text-center mb-8">
+      <div class="text-center mb-4">
         <div class="w-16 h-16 bg-brand-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4">1v1</div>
         <h2 class="text-2xl font-bold text-gray-800">登录</h2>
         <p class="text-gray-500 text-sm mt-1">欢迎回来</p>
       </div>
+      <DisclosureBar class="rounded-xl mb-4" />
 
       <form @submit.prevent="handleLogin" class="space-y-4">
         <div>
@@ -25,9 +26,16 @@
         </button>
       </form>
 
-      <div class="text-center mt-6">
-        <span class="text-gray-500 text-sm">没有账号？</span>
-        <router-link to="/register" class="text-brand-600 text-sm font-medium ml-1">立即注册</router-link>
+      <div class="text-center mt-6 space-y-2">
+        <div>
+          <span class="text-gray-500 text-sm">没有账号？</span>
+          <router-link to="/register" class="text-brand-600 text-sm font-medium ml-1">立即注册</router-link>
+        </div>
+        <div class="text-xs text-gray-400">
+          <router-link to="/terms" class="hover:text-brand-600">用户协议</router-link>
+          <span class="mx-1">·</span>
+          <router-link to="/privacy" class="hover:text-brand-600">隐私说明</router-link>
+        </div>
       </div>
     </div>
   </div>
@@ -37,6 +45,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import DisclosureBar from '@/components/DisclosureBar.vue'
 
 const router = useRouter()
 const userStore = useUserStore()

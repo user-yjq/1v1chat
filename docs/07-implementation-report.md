@@ -256,6 +256,22 @@
 - 遗留：注册人机校验仍为 IP 限流（阶段量级），正式上线建议接验证码/设备指纹；refresh 多端并发场景需宽限期或家族链（当前单端语义）；审计查询无分页（limit≤200 够后台使用，量大后补）；`set_admin.py` 后续可退役。
 - 结论：✅（m46 单测 9 passed；sqlite 120 passed 3 skipped / PG 121 passed 2 skipped / ruff 0；SQLite+PG 迁移 check 无漂移；CI 远端 success，run 34013390556）
 - 日期：2026-09-06
+
+### RPT-M4-010：M4.7 合规与数据权——披露横幅、flags 红线记录、协议/隐私、导出/删除（T-15，2026-09-06）
+
+- 范围：R-F1（产品层透明披露）、R-F2（合规红线事件记录）、R-F3（用户协议/隐私说明）、R-B7（数据导出/彻底删除）。
+- 对照：08 §2.2/§2.6、03 §4 flags、03 §16.1 数据保留口径；M4.6 审计基础设施复用（admin 路由依赖注入）。
+- 完成项：ACC-M4-M47-001~005、ACC-M4-REG-013/014。
+- 变更与偏差：
+  - R-F1/R-F3：新增 `backend/main.py GET /api/meta`（公开，返回 `disclosure.enabled/text`，由 `DISCLOSURE_ENABLED/DISCLOSURE_TEXT` 配置）；前端新增 `components/DisclosureBar.vue`（登录/注册/会话页显著披露“对面是AI扮演的虚拟角色…”；后端不可达时 fail-safe 仍显示），登录/注册页底部与横幅提供 `/terms`、`/privacy` 链接；新增 `views/TermsView.vue`/`PrivacyView.vue` 公开路由（产品性质、数据用途不用于训练、导出/删除权利、合规提示）。
+  - R-F2：新增 `engine2/compliance.py`——纯规则、零 LLM 的合规快线：`scan_user_text`（涉违法请求/自曝敏感信息：身份证号 18 位正则等）、`scan_ai_text`（索要真实敏感信息/明显涉诈诱导话术）；管线末尾新增 `compliance` 节点（guard 之后扫最终文本），命中按类别计数累加进 `state.flags` 并写 `trace.compliance`；开关 `COMPLIANCE_FLAG_ENABLED`。规则刻意保守，避免把卖茶等剧本内正常话术误标。
+  - R-F2 后台：`routers/admin.py` 新增 `GET /api/admin/compliance`（只列 flags 非空会话，含用户/人设/计数/最近活跃），并给 `/api/admin/conversations` 输出补 `flags` 字段。
+  - R-B7：`routers/conversation.py` 新增 `GET /api/conversations/{id}/export`（会话元数据+完整消息；**不含**内部 `state`/`agent_trace`，最小化导出）与 `DELETE /api/conversations/{id}/purge`（清空消息并删除会话含 state，删除后不可恢复）；原 `DELETE /{id}` 软归档语义保留兼容既有 UI。
+  - 偏差：合规识别当前为确定性规则（可离线测试、无成本），未接 LLM 分类；导出/删除为对话级，账号级 `/api/me/data` 聚合端点留待后续；Terms/Privacy 文案为工程版，正式上线前需法务/合规审读。
+- 风险触发：无（无 schema 变更，无新表/迁移；flags 走既有 `state.flags` JSON）。
+- 遗留：账号级整体导出/删除未实现；合规规则需随真实样本迭代（试探集可扩展）；前端披露文案与协议措辞待合规审读后定稿。
+- 结论：✅（m47 单测 11 passed；sqlite 131 passed 3 skipped / PG 132 passed 2 skipped / ruff 0；frontend build 通过 5.14s）
+- 日期：2026-09-06
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。

@@ -32,6 +32,7 @@ def _config() -> SimpleNamespace:
         turn_timeout_s=settings.TURN_TIMEOUT_S,
         guard_enabled=settings.GUARD_ENABLED,
         guard_sample_rate=settings.GUARD_SAMPLE_RATE,
+        compliance_enabled=settings.COMPLIANCE_FLAG_ENABLED,
         history_limit=settings.HISTORY_LIMIT,
         state_facts_max=settings.STATE_FACTS_MAX,
         actor_max_tokens=settings.ACTOR_MAX_TOKENS,

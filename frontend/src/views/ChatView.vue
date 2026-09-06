@@ -1,5 +1,6 @@
 <template>
   <div class="flex-1 flex flex-col h-full">
+    <DisclosureBar />
     <!-- 顶部信息栏 -->
     <div v-if="conversation" class="bg-white border-b px-6 py-3 flex items-center gap-3">
       <img :src="conversation.persona?.avatar_url" :alt="conversation.persona?.name"
@@ -85,6 +86,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useConversationStore } from '@/stores/conversation'
+import DisclosureBar from '@/components/DisclosureBar.vue'
 
 const props = defineProps<{ id: string }>()
 const route = useRoute()

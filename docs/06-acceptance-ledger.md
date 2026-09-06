@@ -190,6 +190,13 @@
 | ACC-M4-M46-006 | 工程 | CI 质量门：sqlite 全量 + PG 全量 + 迁移 upgrade/check + redis 限流 + docker 镜像 readiness 冒烟 | GitHub Actions push（run 34013390556） | 全绿 | success（1m3s，三 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 | ACC-M4-REG-011 | 单测 | 全量回归（sqlite） | `pytest backend` | 全绿 | 120 passed, 3 skipped in 4.05s | 测试输出 | ✅ | 2026-09-06 |
 | ACC-M4-REG-012 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 121 passed, 2 skipped in 10.19s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
+| ACC-M4-M47-001 | 单测 | R-F2 合规扫描与管线落痕：确定性类别识别（用户涉违法/自曝敏感信息、AI 索要真实信息/涉诈诱导）；命中增量写 `state.flags` + `trace.compliance`；开关关闭不落 | `pytest tests/engine2_core/test_m47_compliance.py` | 全绿 | 11 passed in 1.33s | engine2/compliance.py、engine2/pipeline.py（compliance 节点） | ✅ | 2026-09-06 |
+| ACC-M4-M47-002 | 单测 | R-F2 admin 后台可见：`GET /api/admin/compliance` 只列 flags 非空会话 | 同上 | 全绿 | 通过 | routers/admin.py admin_list_compliance | ✅ | 2026-09-06 |
+| ACC-M4-M47-003 | 单测 | R-F1/R-F3 披露 meta：`GET /api/meta` 返回 disclosure 开关+文案（可配）；前端 DisclosureBar/登录注册会话页展示 | 同上（test_app_meta_disclosure）+ `npm run build` | 全绿 | build 通过（5.14s） | main.py app_meta、frontend/src/components/DisclosureBar.vue | ✅ | 2026-09-06 |
+| ACC-M4-M47-004 | 工程 | R-F3 协议/隐私：前端 `/terms`、`/privacy` 公开路由（产品性质/数据用途不训练/导出删除权利/合规提示）；登录/注册页链接 | `npm run build` + 路由审阅 | 可访问 | 通过 | frontend/src/views/TermsView.vue、PrivacyView.vue、router/index.ts | ✅ | 2026-09-06 |
+| ACC-M4-M47-005 | 单测 | R-B7 数据导出/彻底删除：export 返回会话+完整消息（不含内部字段）、非属主 404；purge 删消息与会话（含 state）后 DB 无残留；软归档语义不变 | `pytest tests/engine2_core/test_m47_compliance.py` | 全绿 | 通过 | routers/conversation.py（export/purge/delete） | ✅ | 2026-09-06 |
+| ACC-M4-REG-013 | 单测 | 全量回归（sqlite） | `pytest backend` | 全绿 | 131 passed, 3 skipped in 4.26s | 测试输出 | ✅ | 2026-09-06 |
+| ACC-M4-REG-014 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 132 passed, 2 skipped in 11.83s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
 
 ## 6. 后续登记区
 

@@ -203,10 +203,42 @@ def admin_list_conversations(
             "photos_sent": state.get("photos_sent", 0),
             "red_packets": state.get("red_packets", 0),
             "message_count": len(c.messages),
+            "flags": (c.state or {}).get("flags", {}),
             "last_message_at": c.last_message_at.isoformat() if c.last_message_at else None,
             "status": c.status,
         })
     return out
+
+
+@router.get("/compliance")
+def admin_list_compliance(
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    user: User = Depends(_require_admin),
+):
+    """R-F2 后台可见：列出命中合规 flags 的会话（按最近活跃倒序）。"""
+    convs = (db.query(Conversation)
+             .order_by(Conversation.last_message_at.desc())
+             .all())
+    rows = []
+    for c in convs:
+        flags = (c.state or {}).get("flags") or {}
+        if not flags:
+            continue
+        p = c.persona
+        rows.append({
+            "id": c.id,
+            "user_id": c.user_id,
+            "title": c.title,
+            "persona_name": p.name if p else "-",
+            "flags": flags,
+            "message_count": len(c.messages),
+            "status": c.status,
+            "last_message_at": c.last_message_at.isoformat() if c.last_message_at else None,
+        })
+        if len(rows) >= min(limit, 200):
+            break
+    return rows
 
 
 @router.get("/conversations/{cid}/messages", response_model=list[MessageOut])

@@ -77,6 +77,17 @@ def health_ready():
     return JSONResponse(content=report, status_code=status_code)
 
 
+@app.get("/api/meta")
+def app_meta():
+    """公开元信息（M4.7 R-F1/R-F3）：产品层透明披露文案与开关，供前端渲染。"""
+    return {
+        "disclosure": {
+            "enabled": bool(settings.DISCLOSURE_ENABLED),
+            "text": settings.DISCLOSURE_TEXT,
+        }
+    }
+
+
 def readiness_report(db_target=None) -> dict:
     db_ok = db_is_ready(db_target)
     llm = llm_config_report()

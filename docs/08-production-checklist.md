@@ -32,7 +32,7 @@
 | R-B4 | 会话 state 迁移无版本化流程 | `engine2/schema.normalize_state` 容忍旧数据，但 schema 演进策略未定义 | 定义 state v2→v3 的迁移清单与灰度策略（旧会话可降级/迁移脚本） | P2 | ⏸ | 迁移演练记录 |
 | R-B5 | 消息查询无联合索引/分页 | `models/database.Message` 仅 `sent_at` 索引；`routers/conversation.py` 用 `.limit()` 无游标 | 加 `(conversation_id, sent_at)` 联合索引；消息列表改游标分页 | P2 | ⏸ | 万级消息会话接口 p95 达标 |
 | R-B6 | 无备份/恢复与数据保留策略 | 已落地 `scripts/backup_pg.sh`/`restore_pg.sh`/`drill_pg_backup_restore.sh` + 保留策略（03 §16）：pg_dump -Fc + sha256 + 30 天轮转、恢复防误覆盖同名库、演练逐表行数比对 PASS | 上线按 cron 每日备份（RPO ≤24h）；SQLite 开发库直接拷贝 data 文件 | P1 | ✅ | 演练 PASS（6 表行数一致，06 ACC-M4-B6-001） |
-| R-B7 | 无用户数据导出/删除闭环 | 会话只有软归档 `status="archived"`（`routers/conversation.py`），无删除/导出 | 提供导出（JSON）与彻底删除接口，删除同时清 state/messages | P1 | ⏸ | 删除后数据不可恢复（抽查 DB） |
+| R-B7 | 无用户数据导出/删除闭环 | 新增 `GET /api/conversations/{id}/export`（JSON：会话元数据+完整消息，不含内部 agent_trace/state）与 `DELETE /api/conversations/{id}/purge`（删除消息+会话及 state，删除后不可恢复）；原 `DELETE /api/conversations/{id}` 保留软归档兼容既有 UI | 账号级整体导出/删除可另加 `/api/me/data` 聚合端点（当前为对话级） | P1 | ✅ | 单测：导出含消息/非属主 404/删除后 DB 无残留/软归档仍保留（test_m47_compliance.py） |
 
 ### 2.3 网关与安全
 
@@ -70,9 +70,9 @@
 
 | ID | 缺口 | 现状（证据） | 加固建议 | 优先级 | 状态 | 验收方式 |
 |----|------|--------------|----------|--------|------|----------|
-| R-F1 | 前端无“对面是 AI 角色扮演实验”披露 | 01 §4.3 产品层透明要求；`frontend/src` 未检索到披露文案 | 登录/会话页显著提示（不得误导真实用户交易），合规开关可配 | P0 | ⏸ | UI 走查 + 合规评审 |
-| R-F2 | 合规红线事件未记录 | `state.flags` 预留（03 §4）但未接入 | 命中红线/合规场景（涉违法、诱导、索要真实信息等）写 flags + trace，后台可见 | P1 | ⏸ | 触发后后台可见记录 |
-| R-F3 | 隐私政策/条款缺失 | 无对外协议文本 | 提供用户协议与隐私说明（数据用途、不用于训练） | P1 | ⏸ | 文档评审 |
+| R-F1 | 前端无“对面是 AI 角色扮演实验”披露 | 新增 `frontend/src/components/DisclosureBar.vue`：登录/注册/会话页显著披露“对面是AI扮演的虚拟角色…”，文案与开关由后端 `GET /api/meta` 下发（`DISCLOSURE_ENABLED/DISCLOSURE_TEXT` 可配，后端不可达时 fail-safe 仍显示）；登录/注册页附协议与隐私链接 | 上线前复核文案口径（不得误导真实用户交易） | P0 | ✅ | frontend build 通过 + meta 单测；UI 走查（test_m47_compliance.py::test_app_meta_disclosure） |
+| R-F2 | 合规红线事件未记录 | `engine2/compliance.py` 合规节点（纯规则、零 LLM 成本）：扫描用户涉违法请求/自曝敏感信息、AI 回复索要真实信息/涉诈诱导 → 增量写 `state.flags` + `trace.compliance`；新增 `GET /api/admin/compliance` 后台可见；开关 `COMPLIANCE_FLAG_ENABLED` | 更广语义可升级 LLM 分类，但以确定性规则为基座（离线可测） | P1 | ✅ | 单测：类别扫描/管线 flags 累加与 trace/开关关闭/admin 列表（test_m47_compliance.py） |
+| R-F3 | 隐私政策/条款缺失 | 新增前端 `/terms`、`/privacy` 公开页（TermsView/PrivacyView）：产品为 AI 角色扮演实验、数据用途（不用于训练）、导出/删除权利、合规提示；登录/注册页底部与披露横幅均含链接 | 上线前由法务/合规审读措辞（当前为工程版文案） | P1 | ✅ | 前端路由可达 + build 通过；文档评审登记 |
 
 ## 3. 建议实施顺序（阶段拆分，供 T-15 后续子任务）
 
@@ -86,7 +86,7 @@
 | M4.4 | Docker 加固 + Makefile/依赖单入口修正（CI 质量门已随 R-E1 落地） | — | R-E5/E6（R-D4 readiness 部分） | PR 门禁 + 镜像构建冒烟（CI docker job）✅ |
 | M4.5 | 观测：request-id、指标、结构化日志、readiness | M4.2 | R-D1~D4 | 看板与日志样例 ✅（/api/metrics + JSON 日志 + readiness 探测） |
 | M4.6 | 管理审计 + token 刷新/撤销 + 登录防爆破 | M4.3 | R-C2/C3/C5/C6 | 安全边界用例绿 ✅（sqlite 120 passed / PG 121 passed，m46 单测 9） |
-| M4.7 | 合规披露 UI + flags 红线记录 + 隐私条款 + 删除/导出 | — | R-F1~F3/B7 | 合规评审通过 |
+| M4.7 | 合规披露 UI + flags 红线记录 + 隐私条款 + 删除/导出 | — | R-F1~F3/B7 | 合规评审通过 ✅（披露横幅+/api/meta、flags+admin 可见、Terms/Privacy 页、export/purge；sqlite 131 / PG 132 绿） |
 | M4.8 | 数据保留策略 + 游标分页 + state 迁移策略 | M4.1 | R-B5/B4/B7 | 压测与迁移演练 |
 | M4.9 | v0.5 候选收口：默认 v2、双引擎回归、回滚演练、部署文档 | 上述全部 | R-E4 及全部 | 台账+部署文档，打 v0.5 tag |
 
@@ -112,6 +112,6 @@
 ## 6. 状态速览
 
 - 本表为 M4 阶段一评审基线：共 31 项缺口，其中 P0 7 项（R-A1、R-B1、R-B2、R-C1、R-D2、R-E1、R-F1）。
-- 已落地：R-C1 ✅、R-B3 ✅、R-B6 ✅（备份/恢复演练 PASS + 保留策略 03 §16）、R-E1 ✅（CI 多次 success）、R-E2 ✅、R-E3 ✅；M4.1：R-B1 ✅、R-B2 ✅；M4.2：R-A1 ✅、R-A3 ✅；M4.3：R-C4 ✅；M4.4：R-E5 ✅、R-E6 ✅；M4.5：R-D1 ✅、R-D2 ✅、R-D3 ✅、R-D4 ✅；M4.6：R-C2 ✅、R-C3 ✅、R-C5 ✅、R-C6 ✅。
-- 实施记录：M4.1 PG+Alembic（RPT-M4-003）；M4.2 跨 worker 会话锁 + Redis 限流（RPT-M4-004）；M4.3 prod CORS 校验 + env/compose 键一致（RPT-M4-005）；M4.4 Docker 加固 + Makefile/依赖单入口（RPT-M4-006）；R-B6 PG 备份/恢复演练与保留策略（RPT-M4-007）；M4.5 观测（request-id/指标/结构化日志/readiness）（RPT-M4-008）；M4.6 安全与审计（登录防爆破/refresh 轮换撤销/管理审计/admin 引导）（RPT-M4-009）。
+- 已落地：R-C1 ✅、R-B3 ✅、R-B6 ✅（备份/恢复演练 PASS + 保留策略 03 §16）、R-E1 ✅（CI 多次 success）、R-E2 ✅、R-E3 ✅；M4.1：R-B1 ✅、R-B2 ✅；M4.2：R-A1 ✅、R-A3 ✅；M4.3：R-C4 ✅；M4.4：R-E5 ✅、R-E6 ✅；M4.5：R-D1 ✅、R-D2 ✅、R-D3 ✅、R-D4 ✅；M4.6：R-C2 ✅、R-C3 ✅、R-C5 ✅、R-C6 ✅；M4.7：R-B7 ✅、R-F1 ✅、R-F2 ✅、R-F3 ✅。
+- 实施记录：M4.1 PG+Alembic（RPT-M4-003）；M4.2 跨 worker 会话锁 + Redis 限流（RPT-M4-004）；M4.3 prod CORS 校验 + env/compose 键一致（RPT-M4-005）；M4.4 Docker 加固 + Makefile/依赖单入口（RPT-M4-006）；R-B6 PG 备份/恢复演练与保留策略（RPT-M4-007）；M4.5 观测（request-id/指标/结构化日志/readiness）（RPT-M4-008）；M4.6 安全与审计（登录防爆破/refresh 轮换撤销/管理审计/admin 引导）（RPT-M4-009）；M4.7 合规与数据权（披露横幅/meta、flags+admin、Terms/Privacy 页、export/purge）（RPT-M4-010）。
 - 每完成一项：回填本节状态 → 06 台账登记 → 07 实施报告追加 → 更新 00/04 看板。

@@ -16,6 +16,16 @@ const router = createRouter({
       component: () => import('@/views/RegisterView.vue'),
     },
     {
+      path: '/terms',
+      name: 'terms',
+      component: () => import('@/views/TermsView.vue'),
+    },
+    {
+      path: '/privacy',
+      name: 'privacy',
+      component: () => import('@/views/PrivacyView.vue'),
+    },
+    {
       path: '/home',
       name: 'home',
       component: () => import('@/views/HomeView.vue'),
@@ -36,7 +46,9 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const userStore = useUserStore()
-  if (!userStore.token && to.name !== 'login' && to.name !== 'register') {
+  if (!userStore.token &&
+      to.name !== 'login' && to.name !== 'register' &&
+      to.name !== 'terms' && to.name !== 'privacy') {
     return '/login'
   }
 })

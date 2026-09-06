@@ -49,6 +49,11 @@ class Settings(BaseSettings):
     ADMIN_BOOTSTRAP_USERNAME: str = ""
     ADMIN_BOOTSTRAP_PASSWORD: str = ""
 
+    # 合规与披露（M4.7 R-F1/F2/F3）
+    COMPLIANCE_FLAG_ENABLED: bool = True    # engine2 合规 flags 记录总开关
+    DISCLOSURE_ENABLED: bool = True         # 前端“对面是 AI 角色扮演实验”披露开关
+    DISCLOSURE_TEXT: str = "对面是AI扮演的虚拟角色，仅供角色扮演/销售陪练/反诈演练等实验用途，请勿当真，不要进行真实交易或转账。"
+
     # 静态媒体目录（AI 发送的照片/头像放在这里，以 /media 路由访问）
     MEDIA_DIR: str = "./media"
 
