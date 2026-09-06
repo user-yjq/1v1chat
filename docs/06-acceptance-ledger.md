@@ -231,7 +231,8 @@
 | ACC-M5-M52-001 | 代码边界 | v1 引擎整体归档 `_legacy/engine_v1/`（git mv 保历史）；`services/chat_engine` 转发层用模块别名保持 `process_message`/`EngineError`/`build_llm`（parity monkeypatch 打桩点）；旧顶层 `engine/` 包移除 | `git status` + `rg "^(from|import) engine\\b"` + parity 单测 | 0 旧导入 | 通过（24 旧测 + parity 全绿） | backend/_legacy/engine_v1/、services/chat_engine.py | ✅ | 2026-09-06 |
 | ACC-M5-M52-002 | 集成/回滚 | v1 回滚语义保持：ENGINE_VERSION=v1 路径可用；双引擎同输入对照 PASS | `scripts/drill_engine_rollback.py` + `pytest test_engine_parity.py` | PASS / 全绿 | PASS（v1/v2 各 1 轮、各 2 条消息落库） | scripts/drill_engine_rollback.py | ✅ | 2026-09-06 |
 | ACC-M5-REG-003 | 单测 | 全量回归（sqlite） | `pytest backend` | 全绿 | 148 passed, 3 skipped in 4.68s | 测试输出 | ✅ | 2026-09-06 |
-| ACC-M5-REG-004 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 149 passed, 2 skipped in 14.28s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
+| ACC-M5-REG-004 | 集成 | 全量回归（PostgreSQL）
+| ACC-M5-M52-003 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 | GitHub Actions push（run 34016707176） | 全绿 | success（1m6s，三 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 | | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 149 passed, 2 skipped in 14.28s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
 
 ## 6. 后续登记区
 

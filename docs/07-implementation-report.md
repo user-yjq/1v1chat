@@ -324,7 +324,7 @@
 
 - 范围：09 §7 / 03 §12（CB-2、R-E4）排期的“v1 引擎迁 `_legacy/` 清理（v0.5.0 后）”。
 - 对照：03 §12.1 目录规划、05 边界红线、08 R-E4、06 §4.1 CB-1/CB-2、09 §5 回滚。
-- 完成项：ACC-M5-M52-001/002、ACC-M5-REG-003/004。
+- 完成项：ACC-M5-M52-001~003、ACC-M5-REG-003/004（003=CI 远端 success）。
 - 变更与偏差：
   - `git mv backend/engine → backend/_legacy/engine_v1/`、`git mv services/chat_engine.py → backend/_legacy/engine_v1/chat_engine.py`（历史保留）；旧顶层 `engine/` 包移除，`engine2/*` 不依赖它（CB-1 复证）。
   - v1 service 内部 `engine.X` 导入改包内相对导入（`.events/.photo/.prompting/.state`）；直接 import `engine.*` 的三个旧测试改 `_legacy.engine_v1.*`。
@@ -332,7 +332,7 @@
   - 语义不变：`ENGINE_VERSION=v1` 一键回滚、双引擎 parity、drill_engine_rollback 均照常；docs 09 §5/§7、03 §12、00/04/05/08 同步。
 - 风险触发：无（转发层方案先 RED 暴露 build_llm 打桩缺口后修正）。
 - 遗留：`_legacy/` 内更早的 `agents/`、`prompts_loader_old.py` 等历史代码仍留档，未清理引用（无人 import，纯归档）；主路径不再出现 v1 实现。
-- 结论：✅（旧 engine 测 + parity 24 passed；ruff 0；drill_engine_rollback PASS；sqlite 全量 148 passed 3 skipped in 4.68s / PG 全量 149 passed 2 skipped in 14.28s）
+- 结论：✅（旧 engine 测 + parity 24 passed；ruff 0；drill_engine_rollback PASS；sqlite 全量 148 passed 3 skipped in 4.68s / PG 全量 149 passed 2 skipped in 14.28s；CI 远端 success，run 34016707176，1m6s）
 - 日期：2026-09-06
 ---
 
