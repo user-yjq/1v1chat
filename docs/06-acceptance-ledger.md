@@ -256,6 +256,7 @@
 | ACC-M5-M54-008 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 + 前端 build | GitHub Actions push（run 34020503881） | 全绿 | success（57s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 | ACC-M5-M54-009 | 工程 | 镜像构建链改造：Dockerfile 用 uv+国内镜像源默认（阿里云 apt/PyPI、npmmirror，可 build-arg 覆盖）；`chmod a+rX` 保证非 root(10001) 可读代码；`.dockerignore` 排除嵌套 `.env` 防密钥进镜像 | `docker compose build backend frontend` | 构建成功 | backend：uv 装 54 包 ~3.5s；frontend：npm ci 153 包 ~10s + vite build ~6s，双镜像产出 | backend/Dockerfile、frontend/Dockerfile、.dockerignore | ✅ | 2026-09-06 |
 | ACC-M5-M54-010 | E2E | compose 容器实例可运行：backend health + frontend 200 + seed 4 人设 + walkthrough_live 22/22（真实 HTTP 栈，LLM mock） | `docker compose up -d` + curl readiness/3000 + `walkthrough_live.py --base-url http://127.0.0.1:8000 --archive-dir evidence/` | exit 0 | ready ok；frontend 200；22 步 0 硬失败 exit 0 | evidence/walkthrough-20260906-165833.json（sha256 147d0979 开头） | ✅ | 2026-09-06 |
+| ACC-M5-M54-011 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 + 前端 build（含新 Dockerfile 镜像构建） | GitHub Actions push（run 34023741957） | 全绿 | success（1m1s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 
 ## 6. 后续登记区
 

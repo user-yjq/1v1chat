@@ -410,7 +410,7 @@
   4. 根 `.env` 开发值（相对 sqlite/`localhost` redis）经 compose 插值进容器不可用 → 容器安全默认值需 shell 覆盖或按 `.env.example`。
 - 部署结果：`1v1chat-backend`（8000，healthy，LLM_MODE=mock）+ `1v1chat-frontend`（3000，nginx，200）；容器内 `seed.py` 灌入 4 人设后 `walkthrough_live.py --archive-dir evidence/` **22 步 0 硬失败 exit 0**，证据 sha256 `147d0979` 开头。
 - 遗留：真模型评测仍需公网可达的 `DEEPSEEK_API_KEY`（本机对 api.deepseek.com 出网受限，walkthrough 以 mock 模式完成容器侧全部硬断言）；人工 4 人设/压测读数待回填。
-- 结论：✅（compose 一键构建启动 + 容器内 22/22 走查 PASS）
+- 结论：✅（compose 一键构建启动 + 容器内 22/22 走查 PASS；CI run 34023741957 success 含新 Dockerfile 镜像构建）
 - 日期：2026-09-06
 ---
 
