@@ -209,6 +209,7 @@
 | ACC-M4-M49-003 | 发布 | 版本单一来源提升 0.5.0（version.py ↔ pyproject 同步）；部署手册 docs/09（组件/必改配置/PG/Redis/回滚/发布 checklist） | 版本同步测试 + 文档评审 | 一致 | 通过 | backend/version.py、pyproject.toml、docs/09-deployment.md | ✅ | 2026-09-06 |
 | ACC-M4-REG-017 | 单测 | 全量回归（sqlite，默认 v2） | `pytest backend` | 全绿 | 143 passed, 3 skipped in 4.38s | 测试输出 | ✅ | 2026-09-06 |
 | ACC-M4-REG-018 | 集成 | 全量回归（PostgreSQL，默认 v2） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 144 passed, 2 skipped in 13.24s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
+| ACC-M4-M49-004 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟（默认 v2 分支） | GitHub Actions push（run 34015836181） | 全绿 | success（1m0s，三 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 | ACC-M4-M48-006 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 | GitHub Actions push（run 34014643804） | 全绿 | success（1m4s，三 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 | ACC-M4-M47-006 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 + redis 限流 + docker 冒烟 + 前端 build | GitHub Actions push（run 34014308606） | 全绿 | success（53s，三 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 

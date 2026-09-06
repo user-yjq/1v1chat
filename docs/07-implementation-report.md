@@ -293,15 +293,15 @@
 
 - 范围：R-E4（发布默认切 v2 + 一键回滚 v1）、双引擎回归、版本提升 0.5.0、部署与发布手册。
 - 对照：08 §2.2 R-E4、08 §3 M4.9、04 §5 版本与发布策略；M4.4（R-E6）起 Makefile/compose 以 v0.5 目标件核对。
-- 完成项：ACC-M4-M49-001~003、ACC-M4-REG-017/018（本次本地全量；CI 与 tag 待本轮收尾后回填）。
+- 完成项：ACC-M4-M49-001~004、ACC-M4-REG-017/018（001~003+REG=本地验证；004=CI 远端 success）。
 - 变更与偏差：
   - R-E4 默认 v2：`backend/config.py` `ENGINE_VERSION="v2"`、`.env.example` 与 `docker-compose.yml`（`${ENGINE_VERSION:-v2}`）三处同步为默认 v2；v1 旧引擎**原位保留**作为回滚点（`drill_engine_rollback.py`：同一人设/输入分别走 v1 与 v2，FakeLLM + 内存 SQLite，各产 1 轮回复并落库，PASS）；`_legacy/` 归档推迟到 v0.5 后清理。
   - 发布件：`backend/version.py` 0.4.0-alpha → **0.5.0**，根 `pyproject.toml` `0.4.0a0` → `0.5.0`（version ↔ pyproject 同步由 test_m49_release/test_prod_safety 双校验）；新增 `docs/09-deployment.md`（组件拓扑、Docker 快速开始、必改配置表、PG/Redis/多 worker 建议、回滚 §5、发布 checklist §6、遗留 §7）。
   - 文档同步：03 §12.2/§13 开关语义改 v2 默认（回滚见 docs/09 §5）；04 §5 当前版本 0.5.0、已发布线补 `v0.5.0`；08 R-E4 ✅、M4.9 行 ✅；00 文档清单加 09。
   - 新增 `backend/tests/engine2_core/test_m49_release.py`（4 tests：默认 v2 / 配置切 v1 回滚 / env+compose 默认 v2 / 0.5.0 与 pyproject 同步），对 ENGINE_VERSION 语义用独立 `Settings(_env_file=None)` 构造，不污染既有 import 缓存的 settings。
 - 风险触发：无（沙箱内直连 PG 被网络限制曾误报连接错误，改用已批准的非沙箱命令执行 PG 全量，非代码问题）。
-- 遗留：HTTP 级压测（万级消息 p95）待可联网部署环境补；v1 引擎 `_legacy/` 归档待 v0.5 发布后清理；CI run 号与 tag v0.5.0 推送结果待本轮收尾回填（06/07 结论行）。
-- 结论：✅（m49 单测 4 passed；ruff 0；回滚演练 drill_engine_rollback PASS；sqlite 全量 143 passed 3 skipped in 4.38s / PG 全量 144 passed 2 skipped in 13.24s）
+- 遗留：HTTP 级压测（万级消息 p95）待可联网部署环境补；v1 引擎 `_legacy/` 归档待 v0.5 发布后清理；HTTP 级压测与 _legacy 归档维持上一条；v0.5.0 发布收尾见 RPT-M4-013 或 00 看板。
+- 结论：✅（m49 单测 4 passed；ruff 0；回滚演练 drill_engine_rollback PASS；sqlite 全量 143 passed 3 skipped in 4.38s / PG 全量 144 passed 2 skipped in 13.24s；CI 远端 success，run 34015836181，1m0s）
 - 日期：2026-09-06
 ---
 

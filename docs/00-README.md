@@ -25,7 +25,7 @@
 | v0.2.0 | 方案 C 基线（确定性状态机 + 单次 Actor），已封存 | ✅ 已验收（2026-09-05 复跑：22 tests / ruff 0） |
 | v0.3.0 | engine2 重构 + 双引擎路由与安全加固 | 🚧 M1/M2 完成（T-02~T-13），69 tests 绿 + HTTP E2E 7/7；待 v0.4 真模型调优 |
 | v0.4.0 | 评测与真人感调优（试探集 + 对抗评测） | 🚧 离线完成 + 对抗评测工具就绪（16 剧本，mock 冒烟 0 硬失败）；待真模型走查/人工评审 |
-| v0.5.0 | 生产化候选（队列/网关/观测/Alembic/安全加固） | 🚧 M4.1~M4.9 + R-B6 已落地（PG+Alembic、advisory 锁、Redis 限流、prod CORS 拦截、env 键一致、Docker 非 root/readiness、Makefile 单依赖入口、PG 备份/恢复演练、request-id/指标/JSON 日志/readiness 探测、登录防爆破/refresh 轮换撤销/管理审计/admin 引导、合规 flags/披露横幅/协议隐私/导出删除、state 读时迁移/消息联合索引+游标分页、默认 v2+一键回滚演练、部署手册 docs/09，sqlite 143/PG 144 绿）；CI 绿后打 tag v0.5.0 发布 |
+| v0.5.0 | 生产化候选（队列/网关/观测/Alembic/安全加固） | ✅ M4.1~M4.9 + R-B6 已落地（PG+Alembic、advisory 锁、Redis 限流、prod CORS 拦截、env 键一致、Docker 非 root/readiness、Makefile 单依赖入口、PG 备份/恢复演练、request-id/指标/JSON 日志/readiness 探测、登录防爆破/refresh 轮换撤销/管理审计/admin 引导、合规 flags/披露横幅/协议隐私/导出删除、state 读时迁移/消息联合索引+游标分页、默认 v2+一键回滚演练、部署手册 docs/09，sqlite 143/PG 144 绿）；CI run 34015836181 success + tag v0.5.0 已发布） |
 
 ## 核心约定（所有文档共同遵守）
 
