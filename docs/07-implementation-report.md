@@ -272,6 +272,22 @@
 - 遗留：账号级整体导出/删除未实现；合规规则需随真实样本迭代（试探集可扩展）；前端披露文案与协议措辞待合规审读后定稿。
 - 结论：✅（m47 单测 11 passed；sqlite 131 passed 3 skipped / PG 132 passed 2 skipped / ruff 0；frontend build 通过 5.14s；CI 远端 success，run 34014308606）
 - 日期：2026-09-06
+
+### RPT-M4-011：M4.8 数据与迁移——state v1→v2 读时迁移、消息联合索引与游标分页（T-15，2026-09-06）
+
+- 范围：R-B4（会话 state 迁移版本化流程）、R-B5（消息查询联合索引 + 游标分页）。
+- 对照：08 §2.2、03 §4/§4.1、05 §边界；R-B7 的对话级导出/删除已在 M4.7 落地，本阶段只登记策略口径。
+- 完成项：ACC-M4-M48-001~005、ACC-M4-REG-015/016。
+- 变更与偏差：
+  - R-B4：`engine2/schema.py` 新增 `_is_legacy_v1/_apply_legacy_v1`——旧引擎扁平 state（无 `v` + 含 `stage_idx` 等旧键）读取时按映射**读时迁移**到 v2：`stage_idx→stage.idx`、`stage_turns→stage.turns`、`facts→facts`（≤20）、`photos_sent→photos.sent`、`red_packets→economy.red_packets`；`doubts_raised` 无对应项不迁移；未知/更高版本仍回退新会话。DB 行保留原始 state，迁移在 `normalize_state` 完成（下一次回合落库持久化）。原“legacy 一律重置”语义改为保留进度，对应旧测试 `test_normalize_legacy_to_v2` 更新为保留断言。
+  - R-B4 策略：03 §4.1 新增版本表（v1/v2）与 5 条规则——读时迁移不回写、映射表、升级只增不改+默认值、未来 v2→v3 登记迁移并演练后按 `ENGINE_VERSION` 灰度、未知版本保守回退。
+  - R-B5 索引：`models/database.Message` 增加 `__table_args__` 联合索引 `ix_messages_conversation_sent_at(conversation_id, sent_at)`；新增 Alembic 0003（`e91b6a2d7c04`，down_revision=c4a2e8f0b1d5），SQLite 开发库由 create_all 覆盖、PG 走迁移；一次性库 `upgrade head` + `check` 无漂移（CI Migrate 步骤同样覆盖）。
+  - R-B5 分页：`routers/conversation.py` 抽出纯函数 `page_messages(db, conv_id, limit, before_id)`——默认返回**最新** limit 条（升序，前端一次加载会话尾部更合理），`before_id` 游标向前翻页（id 倒序 limit 后转升序，避免插入期间重复/缺口），非法游标 404，limit 收敛 [1,500]；原 `GET /api/conversations/{id}/messages` 兼容（仅加可选参数）。
+  - 偏差：万级走查在内存 SQLite 完成（沙箱无 loopback HTTP/p95 压测条件），记录首页查询/整页走查耗时作为性能读数；HTTP 级真实压测留待可联网部署环境。
+- 风险触发：无。
+- 遗留：真实 HTTP 环境下的万级消息 p95 压测待部署后补；v2→v3 为占位迁移（无已发布 v3），登记与演练流程已就绪；message 表旧 SQLite 开发库需重建索引时走迁移脚本或 create_all。
+- 结论：✅（schema/m48 单测 9 passed；sqlite 139 passed 3 skipped / PG 140 passed 2 skipped / ruff 0；迁移双路径 check 无漂移；drill_state_migration PASS 7 项；drill_message_pagination PASS 12000 条/24 页）
+- 日期：2026-09-06
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。

@@ -65,7 +65,7 @@ node = Callable[[TurnContext], Awaitable[StatePatch]]
 
 ## 4. 状态 schema v2
 
-`Conversation.state` 存版本化 JSON。旧会话（无 `v` 字段）在 v2 引擎读取时视为新会话并初始化 v2 默认值，历史消息不丢。
+`Conversation.state` 存版本化 JSON。旧引擎 v1 扁平 state（无 `v` 字段且含 `stage_idx`/`stage_turns`/`photos_sent`/`red_packets`/`facts` 等旧键）在 v2 引擎读取时按映射**读时迁移**（R-B4，保留阶段/事实/计数进度）；完全无法识别的数据回退新会话默认值；历史消息始终保留（映射见 §4.1）。
 
 ```json
 {
@@ -82,6 +82,22 @@ node = Callable[[TurnContext], Awaitable[StatePatch]]
 
 | 字段 | 含义 | 更新者 |
 |------|------|--------|
+### 4.1 状态版本与迁移策略（R-B4）
+
+| 版本 | 状态 | 说明 |
+|------|------|------|
+| v1 | 旧引擎 `engine/` 扁平 state（历史只读） | `stage_idx/stage_turns/facts/photos_sent/red_packets/doubts_raised` |
+| v2 | 当前 engine2 `StateV2`（STATE_VERSION=2） | 结构化 `stage/meters/facts/photos/economy/negotiation/flags` |
+
+规则：
+
+1. DB 行始终保留写入时的原始 `state`（可回放/审计）；**读时迁移**由 `engine2/schema.normalize_state` 完成，不主动写回，下一次回合落库持久化。
+2. v1→v2 字段映射（`_apply_legacy_v1`）：`stage_idx→stage.idx`、`stage_turns→stage.turns`、`facts→facts`（截断到 ≤20）、`photos_sent→photos.sent`、`red_packets→economy.red_packets`；`doubts_raised` 无 v2 对应项，不迁移。
+3. 升级只允许“新增字段 + 默认值/映射”，禁止删除或改变已有字段语义；未来 **v2→v3** 需先在 `engine2/schema.py` 登记迁移并跑演练（登记 06/07），灰度靠 `ENGINE_VERSION` 开关逐步放量。
+4. 未知/更高版本回退新会话默认值（保守处理，避免错误解释未来格式）。
+5. 演练证据：`scripts/drill_state_migration.py` PASS（7 项断言）；万级消息分页走查见 `scripts/drill_message_pagination.py`（R-B5）。
+
+
 | v | schema 版本，=2 | 编排层 |
 | stage | 剧本幕下标与轮次 | Decider |
 | meters | trust/interest/suspicion 0-100 | Decider |

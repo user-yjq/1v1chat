@@ -197,6 +197,13 @@
 | ACC-M4-M47-005 | 单测 | R-B7 数据导出/彻底删除：export 返回会话+完整消息（不含内部字段）、非属主 404；purge 删消息与会话（含 state）后 DB 无残留；软归档语义不变 | `pytest tests/engine2_core/test_m47_compliance.py` | 全绿 | 通过 | routers/conversation.py（export/purge/delete） | ✅ | 2026-09-06 |
 | ACC-M4-REG-013 | 单测 | 全量回归（sqlite） | `pytest backend` | 全绿 | 131 passed, 3 skipped in 4.26s | 测试输出 | ✅ | 2026-09-06 |
 | ACC-M4-REG-014 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 132 passed, 2 skipped in 11.83s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
+| ACC-M4-M48-001 | 单测 | R-B4 state 读时迁移：legacy v1 扁平 state（stage_idx/stage_turns/facts/photos_sent/red_packets）→ v2 保留阶段/事实/计数进度；缺失键用默认；未知版本/坏数据回退新会话 | `pytest tests/engine2_core/test_schema.py` | 全绿 | 通过（3 用例：迁移保留/缺失默认/未知回退） | engine2/schema.py（_is_legacy_v1/_apply_legacy_v1） | ✅ | 2026-09-06 |
+| ACC-M4-M48-002 | 工程 | R-B4 迁移策略与演练：03 §4.1 版本表/字段映射/灰度规则成文；`drill_state_migration.py` 7 项断言 PASS | `PYTHONPATH=backend .venv/bin/python scripts/drill_state_migration.py` | 全 PASS | PASS（7 项断言） | docs/03 §4.1、scripts/drill_state_migration.py | ✅ | 2026-09-06 |
+| ACC-M4-M48-003 | 迁移 | Alembic 0003（e91b6a2d7c04）新增 messages `(conversation_id, sent_at)` 联合索引：一次性 SQLite/PG 库 upgrade+check 无漂移 | `DATABASE_URL=<sqlite/pg> alembic upgrade head && alembic check` | 无漂移 | PASS（No new upgrade operations detected） | backend/alembic/versions/e91b6a2d7c04_m48_*.py | ✅ | 2026-09-06 |
+| ACC-M4-M48-004 | 单测 | R-B5 游标分页：默认取最新 N 条升序；before_id 向前翻页无重复/无缺口；非法游标 404；limit 收敛 ≤500；非属主 404；联合索引在表上 | `pytest tests/engine2_core/test_m48_pagination.py` | 全绿 | 6 passed | routers/conversation.py page_messages、models/database.py Message.__table_args__ | ✅ | 2026-09-06 |
+| ACC-M4-M48-005 | 工程 | R-B5 万级消息走查：12000 条/24 页游标分页无缺口，记录首页查询与整页走查耗时 | `PYTHONPATH=backend .venv/bin/python scripts/drill_message_pagination.py` | PASS | PASS（插入 570ms/首页 22ms/整页走查 478ms） | scripts/drill_message_pagination.py | ✅ | 2026-09-06 |
+| ACC-M4-REG-015 | 单测 | 全量回归（sqlite） | `pytest backend` | 全绿 | 139 passed, 3 skipped in 4.41s | 测试输出 | ✅ | 2026-09-06 |
+| ACC-M4-REG-016 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 140 passed, 2 skipped in 13.07s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
 | ACC-M4-M47-006 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 + redis 限流 + docker 冒烟 + 前端 build | GitHub Actions push（run 34014308606） | 全绿 | success（53s，三 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 
 ## 6. 后续登记区

@@ -19,12 +19,34 @@ def test_default_state_v2():
         assert key in s
 
 
-def test_normalize_legacy_to_v2():
-    out = normalize_state({"stage_idx": 1, "photos_sent": 2}, "free_chat")
+def test_normalize_legacy_v1_migrates_preserving_progress():
+    out = normalize_state({
+        "stage_idx": 1,
+        "stage_turns": 3,
+        "photos_sent": 2,
+        "red_packets": 1,
+        "facts": {"job": "程序员"},
+        "doubts_raised": 5,
+    }, "free_chat")
     assert out["v"] == 2
     assert out["stage"]["scenario_slug"] == "free_chat"
+    assert out["stage"]["idx"] == 1
+    assert out["stage"]["turns"] == 3
+    assert out["photos"]["sent"] == 2
+    assert out["economy"]["red_packets"] == 1
+    assert out["facts"] == {"job": "程序员"}
+
+
+def test_normalize_legacy_missing_keys_use_defaults():
+    out = normalize_state({"stage_turns": 9}, "x")
     assert out["stage"]["idx"] == 0
+    assert out["stage"]["turns"] == 9
     assert out["photos"]["sent"] == 0
+
+
+def test_normalize_unrecognized_state_resets_to_default():
+    assert normalize_state({"v": 99, "anything": 1}, "x")["stage"]["idx"] == 0
+    assert normalize_state(None, "x")["stage"]["idx"] == 0
 
 
 def test_normalize_v2_cleans_and_clamps():

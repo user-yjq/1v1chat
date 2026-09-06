@@ -29,8 +29,8 @@
 | R-B1 | 仍是 SQLite，未切 PostgreSQL | `backend/config.py DATABASE_URL` 默认 sqlite；02 ADR-07 明确生产候选 PG | 引入 PG 连接（连接池/重试），SQLite 仅 dev 与 CI | P0 | ✅ | 本地 PG 全量 93 tests 绿 + alembic check 一致 |
 | R-B2 | 无迁移工具 | `backend/db/database.py init_db()` 用 `create_all`；schema 演进不可回滚 | 引入 Alembic：基线迁移 + 后续变更走版本迁移；容器启动跑 `upgrade head` | P0 | ✅ | 基线 0001 建 5 表；SQLite/PG upgrade+check 均无漂移 |
 | R-B3 | SQLite WAL/busy_timeout 未启用，与文档不符 | 02 ADR-07 声称已启用；`backend/db/database.py` 无 PRAGMA | 开发库补 `journal_mode=WAL`+`busy_timeout`（文档与代码对齐） | P2 | ✅ | 单测断言 WAL/busy_timeout=5000 |
-| R-B4 | 会话 state 迁移无版本化流程 | `engine2/schema.normalize_state` 容忍旧数据，但 schema 演进策略未定义 | 定义 state v2→v3 的迁移清单与灰度策略（旧会话可降级/迁移脚本） | P2 | ⏸ | 迁移演练记录 |
-| R-B5 | 消息查询无联合索引/分页 | `models/database.Message` 仅 `sent_at` 索引；`routers/conversation.py` 用 `.limit()` 无游标 | 加 `(conversation_id, sent_at)` 联合索引；消息列表改游标分页 | P2 | ⏸ | 万级消息会话接口 p95 达标 |
+| R-B4 | 会话 state 迁移无版本化流程 | `engine2/schema.py` 读时迁移：v1 扁平 state（`stage_idx/stage_turns/facts/photos_sent/red_packets`）→ v2 保留阶段/事实/计数进度（`doubts_raised` 无对应项不迁）；未知/更高版本安全回退新会话；迁移与灰度策略见 03 §4.1 | 未来 v2→v3 按 03 §4.1 登记迁移 + 演练后以 `ENGINE_VERSION` 灰度放量 | P2 | ✅ | 单测 test_normalize_legacy_v1_migrates_preserving_progress（test_schema.py）；scripts/drill_state_migration.py PASS |
+| R-B5 | 消息查询无联合索引/分页 | `Message` 增加 `Index(ix_messages_conversation_sent_at)`（Alembic 0003，SQLite/PG `upgrade head`+`check` 无漂移）；`GET /api/conversations/{id}/messages` 改游标分页（`before_id`+`limit`，limit 收敛 ≤500，默认返回最新 N 条升序） | 超长历史前端可“向上翻页”继续取更早消息（接口已支持），必要时接无限滚动 | P2 | ✅ | 单测：无重复/无缺口/越权 404/limit 收敛/索引存在（test_m48_pagination.py）；scripts/drill_message_pagination.py（12000 条/24 页，首页 22ms）PASS |
 | R-B6 | 无备份/恢复与数据保留策略 | 已落地 `scripts/backup_pg.sh`/`restore_pg.sh`/`drill_pg_backup_restore.sh` + 保留策略（03 §16）：pg_dump -Fc + sha256 + 30 天轮转、恢复防误覆盖同名库、演练逐表行数比对 PASS | 上线按 cron 每日备份（RPO ≤24h）；SQLite 开发库直接拷贝 data 文件 | P1 | ✅ | 演练 PASS（6 表行数一致，06 ACC-M4-B6-001） |
 | R-B7 | 无用户数据导出/删除闭环 | 新增 `GET /api/conversations/{id}/export`（JSON：会话元数据+完整消息，不含内部 agent_trace/state）与 `DELETE /api/conversations/{id}/purge`（删除消息+会话及 state，删除后不可恢复）；原 `DELETE /api/conversations/{id}` 保留软归档兼容既有 UI | 账号级整体导出/删除可另加 `/api/me/data` 聚合端点（当前为对话级） | P1 | ✅ | 单测：导出含消息/非属主 404/删除后 DB 无残留/软归档仍保留（test_m47_compliance.py） |
 
@@ -87,7 +87,7 @@
 | M4.5 | 观测：request-id、指标、结构化日志、readiness | M4.2 | R-D1~D4 | 看板与日志样例 ✅（/api/metrics + JSON 日志 + readiness 探测） |
 | M4.6 | 管理审计 + token 刷新/撤销 + 登录防爆破 | M4.3 | R-C2/C3/C5/C6 | 安全边界用例绿 ✅（sqlite 120 passed / PG 121 passed，m46 单测 9） |
 | M4.7 | 合规披露 UI + flags 红线记录 + 隐私条款 + 删除/导出 | — | R-F1~F3/B7 | 合规评审通过 ✅（披露横幅+/api/meta、flags+admin 可见、Terms/Privacy 页、export/purge；sqlite 131 / PG 132 绿） |
-| M4.8 | 数据保留策略 + 游标分页 + state 迁移策略 | M4.1 | R-B5/B4/B7 | 压测与迁移演练 |
+| M4.8 | 数据保留策略 + 游标分页 + state 迁移策略 | M4.1 | R-B5/B4/B7 | 压测与迁移演练 ✅（state v1→v2 迁移演练 PASS；万级消息 12000 条分页走查 PASS；sqlite 139 / PG 140 绿） |
 | M4.9 | v0.5 候选收口：默认 v2、双引擎回归、回滚演练、部署文档 | 上述全部 | R-E4 及全部 | 台账+部署文档，打 v0.5 tag |
 
 ## 4. 提案新增 NFR（**未冻结**，须先评审再进 01）
@@ -112,6 +112,6 @@
 ## 6. 状态速览
 
 - 本表为 M4 阶段一评审基线：共 31 项缺口，其中 P0 7 项（R-A1、R-B1、R-B2、R-C1、R-D2、R-E1、R-F1）。
-- 已落地：R-C1 ✅、R-B3 ✅、R-B6 ✅（备份/恢复演练 PASS + 保留策略 03 §16）、R-E1 ✅（CI 多次 success）、R-E2 ✅、R-E3 ✅；M4.1：R-B1 ✅、R-B2 ✅；M4.2：R-A1 ✅、R-A3 ✅；M4.3：R-C4 ✅；M4.4：R-E5 ✅、R-E6 ✅；M4.5：R-D1 ✅、R-D2 ✅、R-D3 ✅、R-D4 ✅；M4.6：R-C2 ✅、R-C3 ✅、R-C5 ✅、R-C6 ✅；M4.7：R-B7 ✅、R-F1 ✅、R-F2 ✅、R-F3 ✅。
-- 实施记录：M4.1 PG+Alembic（RPT-M4-003）；M4.2 跨 worker 会话锁 + Redis 限流（RPT-M4-004）；M4.3 prod CORS 校验 + env/compose 键一致（RPT-M4-005）；M4.4 Docker 加固 + Makefile/依赖单入口（RPT-M4-006）；R-B6 PG 备份/恢复演练与保留策略（RPT-M4-007）；M4.5 观测（request-id/指标/结构化日志/readiness）（RPT-M4-008）；M4.6 安全与审计（登录防爆破/refresh 轮换撤销/管理审计/admin 引导）（RPT-M4-009）；M4.7 合规与数据权（披露横幅/meta、flags+admin、Terms/Privacy 页、export/purge）（RPT-M4-010）。
+- 已落地：R-C1 ✅、R-B3 ✅、R-B6 ✅（备份/恢复演练 PASS + 保留策略 03 §16）、R-E1 ✅（CI 多次 success）、R-E2 ✅、R-E3 ✅；M4.1：R-B1 ✅、R-B2 ✅；M4.2：R-A1 ✅、R-A3 ✅；M4.3：R-C4 ✅；M4.4：R-E5 ✅、R-E6 ✅；M4.5：R-D1 ✅、R-D2 ✅、R-D3 ✅、R-D4 ✅；M4.6：R-C2 ✅、R-C3 ✅、R-C5 ✅、R-C6 ✅；M4.7：R-B7 ✅、R-F1 ✅、R-F2 ✅、R-F3 ✅；M4.8：R-B4 ✅、R-B5 ✅。
+- 实施记录：M4.1 PG+Alembic（RPT-M4-003）；M4.2 跨 worker 会话锁 + Redis 限流（RPT-M4-004）；M4.3 prod CORS 校验 + env/compose 键一致（RPT-M4-005）；M4.4 Docker 加固 + Makefile/依赖单入口（RPT-M4-006）；R-B6 PG 备份/恢复演练与保留策略（RPT-M4-007）；M4.5 观测（request-id/指标/结构化日志/readiness）（RPT-M4-008）；M4.6 安全与审计（登录防爆破/refresh 轮换撤销/管理审计/admin 引导）（RPT-M4-009）；M4.7 合规与数据权（披露横幅/meta、flags+admin、Terms/Privacy 页、export/purge）（RPT-M4-010）；M4.8 数据与迁移（state v1→v2 读时迁移/策略、消息联合索引 0003+游标分页、万级走查）（RPT-M4-011）。
 - 每完成一项：回填本节状态 → 06 台账登记 → 07 实施报告追加 → 更新 00/04 看板。

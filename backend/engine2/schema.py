@@ -1,6 +1,9 @@
 """engine2 数据契约：会话状态 v2、分析输出、patch 合并。
 
 - 会话状态为版本化 JSON（Conversation.state），v=2。
+- 状态迁移策略（R-B4）：DB 行保留原状态，读取时经 normalize_state 做
+  **只读迁移**（不主动写回），由下一次回合持久化；升级只允许“增字段+默认值”，
+  禁止删除/改语义已有字段；未来 v2→v3 走同一登记 + 演练流程（见 docs/03 §4.1）。
 - 节点产出 StatePatch（dict），由 pipeline 按 reducer 语义合并。
 - 节点只读写 context.scratch（回合内临时数据），持久状态只经 patch 变更。
 """
@@ -45,6 +48,24 @@ def default_state_v2(scenario_slug: str | None = None) -> dict:
     }
 
 
+def _is_legacy_v1(raw: dict) -> bool:
+    """旧引擎（frozen engine/）写入的扁平 state：无 v 字段 + 旧字段标记。"""
+    if raw.get("v") is not None:
+        return False
+    return bool(set(raw) & {"stage_idx", "stage_turns", "photos_sent", "red_packets", "facts"})
+
+
+def _apply_legacy_v1(out: dict, raw: dict) -> None:
+    """v1 扁平 state → v2 映射（R-B4，保留旧会话进度，其余字段回退默认）。"""
+    out["stage"]["idx"] = max(0, _as_int(raw.get("stage_idx"), 0))
+    out["stage"]["turns"] = max(0, _as_int(raw.get("stage_turns"), 0))
+    facts = raw.get("facts")
+    if isinstance(facts, dict):
+        out["facts"] = {str(k): str(v) for k, v in list(facts.items())[:FACT_LIMIT]}
+    out["photos"]["sent"] = max(0, _as_int(raw.get("photos_sent"), 0))
+    out["economy"]["red_packets"] = max(0, _as_int(raw.get("red_packets"), 0))
+
+
 def _as_int(value: Any, default: int = 0, lo: int | None = 0) -> int:
     try:
         num = int(value)
@@ -61,17 +82,25 @@ def _clamp100(value: Any) -> int:
 
 
 def normalize_state(raw: Any, scenario_slug: str | None = None) -> dict:
-    """把 DB 读出的 state 归一化为合法的 v2 状态。旧/坏数据回退为新会话。"""
+    """把 DB 读出的 state 归一化为合法的 v2 状态。
+
+    读时迁移：v1 扁平旧数据按字段映射保留进度；无法识别的数据回退为新会话。
+    """
     out = default_state_v2(scenario_slug)
-    if not isinstance(raw, dict) or raw.get("v") != STATE_VERSION:
+    if not isinstance(raw, dict):
         return out
-    for key, value in raw.items():
-        if key not in _TOP_KEYS:
-            continue
-        if isinstance(value, dict) and isinstance(out.get(key), dict):
-            out[key].update(value)
-        elif key != "v":
-            out[key] = copy.deepcopy(value)
+    if raw.get("v") == STATE_VERSION:
+        for key, value in raw.items():
+            if key not in _TOP_KEYS:
+                continue
+            if isinstance(value, dict) and isinstance(out.get(key), dict):
+                out[key].update(value)
+            elif key != "v":
+                out[key] = copy.deepcopy(value)
+    elif _is_legacy_v1(raw):
+        _apply_legacy_v1(out, raw)
+    else:
+        return out
     stage = out["stage"]
     stage["idx"] = max(0, _as_int(stage.get("idx"), 0))
     stage["turns"] = max(0, _as_int(stage.get("turns"), 0))

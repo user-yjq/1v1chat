@@ -85,6 +85,7 @@ def get_conversation(
 def get_messages(
     conv_id: int,
     limit: int = 50,
+    before_id: int | None = None,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -93,12 +94,33 @@ def get_messages(
             .first())
     if not conv:
         raise HTTPException(status_code=404, detail="对话不存在")
-    msgs = (db.query(Message)
-            .filter(Message.conversation_id == conv_id)
-            .order_by(Message.sent_at.asc())
-            .limit(limit)
-            .all())
-    return [MessageOut.model_validate(m) for m in msgs]
+    return [MessageOut.model_validate(m) for m in page_messages(db, conv.id, limit, before_id)]
+
+
+def page_messages(
+    db: Session,
+    conversation_id: int,
+    limit: int = 50,
+    before_id: int | None = None,
+) -> list[Message]:
+    """R-B5 游标分页：按消息 id 倒序取游标之前的 limit 条，再转升序返回。
+
+    - 默认返回最新 limit 条（升序），供前端一次加载会话尾部；
+    - 游标=该会话内某条消息 id，返回比它更早的消息；游标非法返回 404；
+    - limit 收敛到 [1, 500]，避免全表量拉取。
+    """
+    if limit is None or limit < 1:
+        limit = 50
+    limit = min(int(limit), 500)
+    q = db.query(Message).filter(Message.conversation_id == conversation_id)
+    if before_id is not None:
+        anchor = q.filter(Message.id == before_id).first()
+        if anchor is None:
+            raise HTTPException(status_code=404, detail="分页游标不存在")
+        q = q.filter(Message.id < before_id)
+    rows = q.order_by(Message.id.desc()).limit(limit).all()
+    rows.reverse()
+    return rows
 
 
 def _owned_conversation(db: Session, user_id: int, conv_id: int) -> Conversation:

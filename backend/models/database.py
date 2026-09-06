@@ -8,7 +8,7 @@
 """
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -109,6 +109,9 @@ class Message(Base):
     """聊天消息（sender_type: user/ai；content_type: text/image）"""
 
     __tablename__ = "messages"
+    __table_args__ = (
+        Index("ix_messages_conversation_sent_at", "conversation_id", "sent_at"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=False)
