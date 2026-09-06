@@ -242,6 +242,14 @@
 | ACC-M5-M53-002 | 安全/权限
 | ACC-M5-M53-003 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 + 前端 build | GitHub Actions push（run 34017121421） | 全绿 | success（1m34s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 | | 请求复用 Bearer token（userStore.api）；删除成功即登出回 `/login`；越权/401 边界由后端保证（ACC-M5-M51-002） | 代码审阅 + M5.1 后端单测 | 无 token 泄漏 | 通过 | src/stores/user.ts、AccountDataDialog.vue | ✅ | 2026-09-06 |
 
+### M5.4：T-19 上线验收走查工具与手册（2026-09-06，真实环境执行待回填）
+
+| ID | 类型 | 验收项 | 方法 | 预期 | 结果 | 证据 | 结论 | 日期 |
+|-----|------|--------|------|------|------|------|------|------|
+| ACC-M5-M54-001 | 工程 | 走查脚本可执行（readiness/meta/注册/人设/真模型回合/照片策略/导出/删除闭环/admin 抽查），仅 stdlib | `ruff check scripts/walkthrough_live.py` + `python -m py_compile` | 0 错 | All checks passed + compile OK | scripts/walkthrough_live.py | ✅ 工具就绪 | 2026-09-06 |
+| ACC-M5-M54-002 | 走查 | 手册成文：前置条件/自动断言清单/人工真模型评测矩阵（FR-03~06、红线）/压测大纲（p95<3s、同会话并发、分页、429） | 文档评审 | 与 01/09 一致 | 成文（docs/10，91 行） | docs/10-live-walkthrough.md | ✅ 成文 | 2026-09-06 |
+| ACC-M5-M54-003 | E2E | 真实环境执行：walkthrough_live 全绿 + 人工 4 人设走查 + 压测读数 | 在公网实例运行 §3 命令 | exit 0 | 待执行 | evidence/*.json | ⏸ 待线上执行 | — |
+
 ## 6. 后续登记区
 
 自 M1 起，每任务完成后按 §1/§2 追加记录。模板：
