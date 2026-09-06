@@ -428,6 +428,18 @@
 - 日期：2026-09-06
 ---
 
+### RPT-M5-009：API 禁止缓存 + HomeView 错误态修复（2026-09-06）
+
+- 起因：用户在公网实例看到“暂无对话/没有可用人设”，但服务器实测 `demo` 登录后 `/api/personas`=4、会话=4；nginx 日志显示其浏览器**从未发出** `/api/personas`——判断浏览器/中间代理把早期空响应缓存成了“新鲜”数据（FastAPI 默认无 Cache-Control，可被启发式缓存）。
+- 变更：
+  - `backend/core/middleware.py` 新增 `ApiNoStoreMiddleware`：`/api/*` 响应统一注入 `Cache-Control: no-store`；`backend/main.py` 注册。
+  - `frontend/src/views/HomeView.vue`：请求失败显示“人设加载失败，请刷新重试”，仅当请求成功且列表为空才提示“执行 seed.py”。
+- 验证：新增 `test_api_no_store.py`（2 用例，含非 /api 不动）；sqlite 全量 150 passed 3 skipped；ruff 0；镜像重建后经 3000 实测 `/api/personas`=4 且带头 `cache-control: no-store`。CI run 34025601570 success。
+- 遗留：用户在浏览器做一次强制刷新后应恢复正常；若仍异常需采集其浏览器 Network 面板证据。
+- 结论：✅（后端防缓存 + 前端错误态，双保险）
+- 日期：2026-09-06
+---
+
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。

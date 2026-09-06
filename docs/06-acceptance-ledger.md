@@ -259,6 +259,8 @@
 | ACC-M5-M54-011 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 + 前端 build（含新 Dockerfile 镜像构建） | GitHub Actions push（run 34023741957） | 全绿 | success（1m1s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 | ACC-M5-M54-012 | E2E | 真模型走查：compose 实例注入真实 key（backend/.env）后 walkthrough_live 22/22（注册/4人设真模型回合/照片策略/导出/删除） | `DEEPSEEK_API_KEY=<backend/.env> docker compose up -d` + `walkthrough_live.py --archive-dir evidence/` | exit 0 | 22 步 0 硬失败 exit 0；真模型延迟 1.2–2.5s/回合；露馅扫描 0 | evidence/walkthrough-20260906-171806.json（sha256 e34d5e5a 开头） | ✅ | 2026-09-06 |
 | ACC-M5-M54-013 | 走查 | 人工评审素材包：4 人设 × 3 试探（2 露馅试探 + 要照片）真模型回复，验证人设一致性/照片策略差异化/不露 AI | `python /tmp/probe_review.py`（临时驱动器，复用 walkthrough_live Client） | liveness 0 | 小雨拒发“先聊熟”、桃桃发图、阿静“不给”、雪儿“红包一发光就发”；露馅命中 0/12 | evidence/probe-review-20260906-091900.json（sha256 26aba0dd 开头） | ✅ 材料就绪（待人工终评 FR-03~06） | 2026-09-06 |
+| ACC-M5-M54-014 | 工程 | 防陈旧缓存与错误态修复：`/api/*` 响应加 `Cache-Control: no-store`（人设列表曾被缓存成空/旧数据）；HomeView 区分“加载失败”与“空人设”，不再误导去 seed | 新增 tests/engine2_core/test_api_no_store.py（2 用例）+ ruff + sqlite 全量 + 镜像构建 | 全绿 | no_store+observability 10 passed；sqlite 150 passed 3 skipped；ruff 0；经 3000 实测 personas=4 且响应带 cache-control: no-store | backend/core/middleware.py、backend/main.py、frontend/src/views/HomeView.vue | ✅ | 2026-09-06 |
+| ACC-M5-M54-015 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 + redis 限流 + docker 冒烟 + 前端 build（含新中间件与测试） | GitHub Actions push（run 34025601570） | 全绿 | success（1m1s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 
 ## 6. 后续登记区
 
