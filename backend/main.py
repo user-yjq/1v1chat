@@ -15,7 +15,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from llm.provider import llm_config_report
-from routers import admin_router, auth_router, chat_router, conversation_router, personas_router
+from routers import (
+    account_router,
+    admin_router,
+    auth_router,
+    chat_router,
+    conversation_router,
+    personas_router,
+)
 from version import APP_VERSION
 
 configure_logging()
@@ -58,6 +65,7 @@ app.include_router(chat_router)
 app.include_router(conversation_router)
 app.include_router(personas_router)
 app.include_router(admin_router)
+app.include_router(account_router)
 
 # 媒体（头像 / AI 发送的照片）
 Path(settings.MEDIA_DIR).mkdir(parents=True, exist_ok=True)

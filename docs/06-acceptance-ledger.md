@@ -213,6 +213,16 @@
 | ACC-M4-M48-006 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 | GitHub Actions push（run 34014643804） | 全绿 | success（1m4s，三 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 | ACC-M4-M47-006 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 + redis 限流 + docker 冒烟 + 前端 build | GitHub Actions push（run 34014308606） | 全绿 | success（53s，三 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 
+### M5.1：T-16 账号级数据权（R-B7 收尾，2026-09-06）
+
+| ID | 类型 | 验收项 | 方法 | 预期 | 结果 | 证据 | 结论 | 日期 |
+|-----|------|--------|------|------|------|------|------|------|
+| ACC-M5-M51-001 | 单测 | R-B7 账号级导出：`GET /api/me/data` 仅含本人会话（含归档）、字段最小化（无内部 `state`/`agent_trace`） | `pytest tests/engine2_core/test_m51_account_data.py` | 全绿 | 5 passed | backend/routers/account.py + test_m51_account_data.py | ✅ | 2026-09-06 |
+| ACC-M5-M51-002 | 权限/安全 | 端点依赖登录（401）；路由已挂载；导出作用域=当前用户，不泄漏他人会话 | 同上 | 401 / 仅本人 | 通过 | routers/account.py、test_m51_account_data.py | ✅ | 2026-09-06 |
+| ACC-M5-M51-003 | 单测 | R-B7 账号级删除：`DELETE /api/me/data` 清空会话/消息/refresh tokens/账号本身；共享目录与旁人数据不受影响；审计操作者引用置空并新增 `account.purge` 留痕（不落 PII） | 同上 | DB 无本人残留 | 通过 | routers/account.py | ✅ | 2026-09-06 |
+| ACC-M5-REG-001 | 单测 | 全量回归（sqlite） | `pytest backend` | 全绿 | 148 passed, 3 skipped in 4.53s | 测试输出 | ✅ | 2026-09-06 |
+| ACC-M5-REG-002 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 149 passed, 2 skipped in 14.61s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
+
 ## 6. 后续登记区
 
 自 M1 起，每任务完成后按 §1/§2 追加记录。模板：

@@ -132,17 +132,11 @@ def _owned_conversation(db: Session, user_id: int, conv_id: int) -> Conversation
     return conv
 
 
-@router.get("/{conv_id}/export")
-def export_conversation(
-    conv_id: int,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    """R-B7 数据导出：返回会话元数据 + 完整消息（不含内部 agent_trace/state）。"""
-    conv = _owned_conversation(db, user.id, conv_id)
+def conversation_export_body(db: Session, conv: Conversation) -> dict:
+    """R-B7 导出载荷构建（对话级与账号级共用）：不含内部 state/agent_trace。"""
     msgs = (db.query(Message)
-            .filter(Message.conversation_id == conv_id)
-            .order_by(Message.sent_at.asc())
+            .filter(Message.conversation_id == conv.id)
+            .order_by(Message.sent_at.asc(), Message.id.asc())
             .all())
     p = conv.persona
     return {
@@ -171,8 +165,20 @@ def export_conversation(
             }
             for m in msgs
         ],
-        "exported_at": datetime.utcnow().isoformat(),
     }
+
+
+@router.get("/{conv_id}/export")
+def export_conversation(
+    conv_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """R-B7 数据导出：返回会话元数据 + 完整消息（不含内部 agent_trace/state）。"""
+    conv = _owned_conversation(db, user.id, conv_id)
+    body = conversation_export_body(db, conv)
+    body["exported_at"] = datetime.utcnow().isoformat()
+    return body
 
 
 @router.delete("/{conv_id}/purge")

@@ -32,7 +32,7 @@
 | R-B4 | 会话 state 迁移无版本化流程 | `engine2/schema.py` 读时迁移：v1 扁平 state（`stage_idx/stage_turns/facts/photos_sent/red_packets`）→ v2 保留阶段/事实/计数进度（`doubts_raised` 无对应项不迁）；未知/更高版本安全回退新会话；迁移与灰度策略见 03 §4.1 | 未来 v2→v3 按 03 §4.1 登记迁移 + 演练后以 `ENGINE_VERSION` 灰度放量 | P2 | ✅ | 单测 test_normalize_legacy_v1_migrates_preserving_progress（test_schema.py）；scripts/drill_state_migration.py PASS |
 | R-B5 | 消息查询无联合索引/分页 | `Message` 增加 `Index(ix_messages_conversation_sent_at)`（Alembic 0003，SQLite/PG `upgrade head`+`check` 无漂移）；`GET /api/conversations/{id}/messages` 改游标分页（`before_id`+`limit`，limit 收敛 ≤500，默认返回最新 N 条升序） | 超长历史前端可“向上翻页”继续取更早消息（接口已支持），必要时接无限滚动 | P2 | ✅ | 单测：无重复/无缺口/越权 404/limit 收敛/索引存在（test_m48_pagination.py）；scripts/drill_message_pagination.py（12000 条/24 页，首页 22ms）PASS |
 | R-B6 | 无备份/恢复与数据保留策略 | 已落地 `scripts/backup_pg.sh`/`restore_pg.sh`/`drill_pg_backup_restore.sh` + 保留策略（03 §16）：pg_dump -Fc + sha256 + 30 天轮转、恢复防误覆盖同名库、演练逐表行数比对 PASS | 上线按 cron 每日备份（RPO ≤24h）；SQLite 开发库直接拷贝 data 文件 | P1 | ✅ | 演练 PASS（6 表行数一致，06 ACC-M4-B6-001） |
-| R-B7 | 无用户数据导出/删除闭环 | 新增 `GET /api/conversations/{id}/export`（JSON：会话元数据+完整消息，不含内部 agent_trace/state）与 `DELETE /api/conversations/{id}/purge`（删除消息+会话及 state，删除后不可恢复）；原 `DELETE /api/conversations/{id}` 保留软归档兼容既有 UI | 账号级整体导出/删除可另加 `/api/me/data` 聚合端点（当前为对话级） | P1 | ✅ | 单测：导出含消息/非属主 404/删除后 DB 无残留/软归档仍保留（test_m47_compliance.py） |
+| R-B7 | 无用户数据导出/删除闭环 | 新增 `GET /api/conversations/{id}/export`（JSON：会话元数据+完整消息，不含内部 agent_trace/state）与 `DELETE /api/conversations/{id}/purge`（删除消息+会话及 state，删除后不可恢复）；原 `DELETE /api/conversations/{id}` 保留软归档兼容既有 UI | 账号级整体导出/删除已补：`GET/DELETE /api/me/data`（M5.1，见 06 ACC-M5-M51-*；原“对话级”限制解除） | P1 | ✅ | 单测：导出含消息/非属主 404/删除后 DB 无残留/软归档仍保留（test_m47_compliance.py） |
 
 ### 2.3 网关与安全
 

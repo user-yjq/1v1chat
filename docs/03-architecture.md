@@ -285,7 +285,7 @@ STATE_FACTS_MAX: int = 20
 ### 16.1 保留语义（现状与边界）
 
 - 在线保留：`users / conversations / messages / personas / scenarios` 全量保留；会话软归档（`status="archived"`）仅用户侧隐藏，数据仍保留，可供后台审计与反诈/合规复查。
-- 数据导出与彻底删除（R-B7，M4.7 落地）：`GET /api/conversations/{id}/export` 导出 JSON（会话元数据 + 完整消息，不含内部 `state`/`agent_trace`，最小化导出）；`DELETE /api/conversations/{id}/purge` 彻底删除会话与全部消息（含 state），**删除后不可恢复**（无软删除兜底）；软归档 `DELETE /{id}` 保留供 UI 隐藏。账号级整体导出/删除未实现（遗留）。
+- 数据导出与彻底删除（R-B7，M4.7 落地）：`GET /api/conversations/{id}/export` 导出 JSON（会话元数据 + 完整消息，不含内部 `state`/`agent_trace`，最小化导出）；`DELETE /api/conversations/{id}/purge` 彻底删除会话与全部消息（含 state），**删除后不可恢复**（无软删除兜底）；软归档 `DELETE /{id}` 保留供 UI 隐藏。账号级（M5.1 补全，见 RPT-M5-001）：`GET /api/me/data` 导出当前账号全部会话与消息（同对话级最小化字段，不含内部 `state`/`agent_trace`）；`DELETE /api/me/data` 彻底删除账号全部数据与会话（消息/会话含 state、refresh tokens、账号本身，**删除后不可恢复**）；共享目录 personas/scenarios 保留；审计行保留且该用户作为操作者的 `admin_user_id` 置空（不灭失轨迹）。
 - 不承诺自动清理：默认无自动删除时间窗口；确需业务保留窗口时另立配置（P 类需求评审后冻结）。
 
 ### 16.2 备份

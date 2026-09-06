@@ -303,6 +303,23 @@
 - 遗留：HTTP 级压测（万级消息 p95）待可联网部署环境补；v1 引擎 `_legacy/` 归档待 v0.5 发布后清理；HTTP 级压测与 _legacy 归档维持上一条；v0.5.0 发布收尾见 RPT-M4-013 或 00 看板。
 - 结论：✅（m49 单测 4 passed；ruff 0；回滚演练 drill_engine_rollback PASS；sqlite 全量 143 passed 3 skipped in 4.38s / PG 全量 144 passed 2 skipped in 13.24s；CI 远端 success，run 34015836181，1m0s）
 - 日期：2026-09-06
+### RPT-M5-001：M5.1 账号级数据权收尾——GET/DELETE /api/me/data（T-16，2026-09-06）
+
+- 范围：R-B7 遗留收尾（账号级整体导出/删除，原为对话级）。起点：v0.5.0 已发布，本步进入 v0.6.0 候选线（M5，不 bump 版本，收口时单源 bump）。
+- 对照：08 §2.2 R-B7、03 §16.1、09 §7 遗留、04 §5（候选线策略）。
+- 完成项：ACC-M5-M51-001~003、ACC-M5-REG-001/002。
+- 变更与偏差：
+  - 新增 `backend/routers/account.py`：`GET /api/me/data`（导出 account 概览 + 全部会话含归档 + 消息，最小化字段）；`DELETE /api/me/data`（彻底删除消息/会话含 state、refresh tokens、账号本身，删除后不可恢复；共享目录 personas/scenarios 保留）。
+  - 复用重构：`routers/conversation.py` 抽出 `conversation_export_body(db, conv)`（对话级与账号级共用同一最小化导出载荷），对话导出端点行为不变（补 `exported_at`）。
+  - 删除语义：逐会话 ORM 级联（User→Conversation→Message delete-orphan）而非批量 `query.delete`——批量 + `synchronize_session=False` 会在 identity map 留幽灵对象，随后删 user 时 flush 报 `ObjectDeletedError`（已用单测锁定）。AuthToken 显式删除；审计中该用户作为操作者的 `admin_user_id` 置空保留动作行；新增 `account.purge` 审计留痕仅记 id 与计数（不落用户名等 PII）。
+  - 权限/作用域：端点 `Depends(get_current_user)`；导出天然限定当前用户；归档会话同属用户数据，导出含归档、删除含归档。
+  - 文档同步：03 §16.1、04（M5 里程碑 + T-16 + §5 候选线）、00（v0.6 行）、08 R-B7 备注、09 §7 移除已办行。
+- 风险触发：无（实现中发现并修正批量删除幽灵对象陷阱，已单测覆盖）。
+- 遗留：HTTP 级 E2E（真实注册→导出→删除→401）待前端/联网环境补；审计 `account.purge` 暂无可视化入口（admin 审计列表仍可查 action）；T-16 其余 M5 遗留见 09 §7。
+- 结论：✅（m51 单测 5 passed；ruff 0；sqlite 全量 148 passed 3 skipped in 4.53s / PG 全量 149 passed 2 skipped in 14.61s）
+- 日期：2026-09-06
+---
+
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。
