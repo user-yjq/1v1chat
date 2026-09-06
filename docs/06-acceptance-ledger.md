@@ -179,7 +179,7 @@
 | ACC-M4-M45-002 | 单测 | 结构化日志：单行 JSON + extra 白名单脱敏（消息正文/昵称不入日志）；uvicorn access 关闭 | 同上 | 全绿 | 通过 | core/logging.py JsonFormatter | ✅ | 2026-09-06 |
 | ACC-M4-M45-003 | 单测 | 指标：LLM 调用/失败/延迟、Guard 事件、HTTP 请求计数 + Prometheus 文本；MockLLM 调用自动打点 | 同上 | 全绿 | 通过 | core/metrics.py、llm/provider.py、engine2/nodes/guard.py | ✅ | 2026-09-06 |
 | ACC-M4-M45-004 | 单测 | readiness R-D4 完成：DB 断→unavailable(503)；auto 无 key→degraded；mock→ok | `test_readiness_*` | 全绿 | 通过 | main.py readiness_report + llm_config_report | ✅ | 2026-09-06 |
-| ACC-M4-M45-005 | 工程 | `/api/metrics` 暴露 Prometheus 文本；CI docker 冒烟增加 metrics 校验 | workflow 审阅 | 可运行 | 待 GitHub 远端验证 | .github/workflows/ci.yml | 🚧 | 2026-09-06 |
+| ACC-M4-M45-005 | 工程 | `/api/metrics` 暴露 Prometheus 文本；CI docker 冒烟增加 metrics 校验 | workflow 审阅 | 可运行 | CI 远端 success（run 34012369544） | .github/workflows/ci.yml（GitHub Actions runs） | ✅ | 2026-09-06 |
 | ACC-M4-REG-009 | 单测 | 全量回归（sqlite） | `pytest backend` | 全绿 | 111 passed, 3 skipped in 2.22s | 测试输出 | ✅ | 2026-09-06 |
 | ACC-M4-REG-010 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 112 passed, 2 skipped in 6.25s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
 

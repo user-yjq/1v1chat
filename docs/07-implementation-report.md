@@ -227,7 +227,7 @@
 
 - 范围：R-D1（请求关联）、R-D2（运行指标）、R-D3（结构化日志/脱敏）、R-D4（readiness 补全）。
 - 对照：08 §3 M4.5；依赖 M4.4（readiness DB 探测已就绪）。
-- 完成项：ACC-M4-M45-001~005、ACC-M4-REG-009/010（CI metrics 校验待远端实跑后回填）。
+- 完成项：ACC-M4-M45-001~005、ACC-M4-REG-009/010（CI docker metrics 校验已远端 success 回填）。
 - 变更与偏差：
   - R-D1：新增 `core/middleware.py ObservabilityMiddleware`（纯 ASGI，不依赖 BaseHTTPMiddleware）——读取/生成 `X-Request-Id`，写入 `scope.state` 与响应头，设置 contextvar 供日志关联；`routers/chat.py` 将 `request_id` 写入 `agent_trace`（DB 侧按消息可串链路）。
   - R-D2：新增 `core/metrics.py`（threading.Lock + dict，无第三方依赖，Prometheus 文本渲染）；`llm/provider.py` 对 `generate`/`extract_json` 打点（成功/失败/延迟），`guard.py` 每轮上报 blocked/rewrote/fallback/sampled，中间件记录 HTTP 请求量/耗时；新增 `GET /api/metrics`（`text/plain; version=0.0.4`）。MockLLM 同样计数（mock 模式也能看调用量）。
@@ -236,7 +236,7 @@
   - 偏差：HTTP 链路验证在单测用伪 ASGI 应用做（沙箱不可开 HTTP/线程池）；真实容器链路由 CI docker 冒烟覆盖（ready 200 + metrics 文本校验）。
 - 风险触发：无。
 - 遗留：跨进程指标聚合/看板需接 Prometheus+Grafana（多 worker 每进程独立）；前端透传 X-Request-Id 建议下一步接（本地生成即可，不强制）；Guard 每轮次数≤2 的看板公式建议按 trace.llm_calls 聚合（数据已具备）。
-- 结论：✅（sqlite 111 passed 3 skipped / PG 112 passed 2 skipped / ruff 0；单测 8 passed）
+- 结论：✅（sqlite 111 passed 3 skipped / PG 112 passed 2 skipped / ruff 0；单测 8 passed；CI docker 冒烟含 metrics 校验 success）
 - 日期：2026-09-06
 ---
 
