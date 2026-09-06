@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     build:
@@ -27,12 +25,15 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS:-["http://localhost:3000","http://127.0.0.1:3000"]}
       - REDIS_URL=${REDIS_URL:-}
     volumes:
-      - ./data:/app/backend/data
+      # named volume：由镜像内属主(uid 10001)初始化，非 root 容器可直接读写
+      - app-data:/app/backend/data
+      - app-media:/app/backend/media
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/health/ready"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
+      start_period: 10s
       retries: 3
 
   frontend:
@@ -43,8 +44,13 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  app-data:
+  app-media:
 
 networks:
   default:

@@ -38,6 +38,17 @@ engine = make_engine(settings.DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+def db_is_ready(target=None) -> bool:
+    """readiness 探测（M4.4 R-E5）：能执行 SELECT 1 即视为 DB 可用；异常返回 False。"""
+    eng = target or engine
+    try:
+        with eng.connect() as conn:
+            conn.exec_driver_sql("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+
 def get_db():
     db = SessionLocal()
     try:
@@ -57,4 +68,3 @@ def run_migrations() -> None:
 
     ini_path = Path(__file__).resolve().parents[1] / "alembic.ini"
     command.upgrade(Config(str(ini_path)), "head")
-

@@ -5,9 +5,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from config import settings, validate_prod_settings
-from db.database import init_db, run_migrations
+from db.database import db_is_ready, init_db, run_migrations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from routers import admin_router, auth_router, chat_router, conversation_router, personas_router
 from version import APP_VERSION
@@ -56,3 +57,13 @@ app.mount("/media", StaticFiles(directory=settings.MEDIA_DIR), name="media")
 @app.get("/api/health")
 def health():
     return {"status": "ok", "service": "1v1chat", "version": APP_VERSION}
+
+
+@app.get("/api/health/ready")
+def health_ready():
+    """readiness（M4.4 R-E5）：DB 可连通才返回 200；否则 503 供编排层摘流/重启。"""
+    ok = db_is_ready()
+    return JSONResponse(
+        content={"status": "ok" if ok else "unavailable", "service": "1v1chat", "version": APP_VERSION},
+        status_code=200 if ok else 503,
+    )

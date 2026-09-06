@@ -86,3 +86,29 @@ jobs:
       - name: Build
         run: npm run build
         working-directory: frontend
+
+  docker:
+    name: Docker image build + readiness smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend image
+        run: docker build -f backend/Dockerfile -t 1v1chat-backend:ci .
+      - name: Build frontend image
+        run: docker build -t 1v1chat-frontend:ci frontend
+      - name: Smoke backend readiness
+        run: |
+          docker run -d --name 1v1chat-smoke \
+            -e APP_ENV=dev \
+            -e LLM_MODE=mock \
+            -e JWT_SECRET=ci-only-secret-not-for-prod \
+            -p 18000:8000 1v1chat-backend:ci
+          code=""
+          for _ in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18000/api/health/ready || true)
+            [ "$code" = "200" ] && break
+            sleep 1
+          done
+          [ "$code" = "200" ] || { echo "readiness 未在 30s 内 200"; exit 1; }
+          curl -fsS http://127.0.0.1:18000/api/health
+          docker rm -f 1v1chat-smoke >/dev/null

@@ -1,0 +1,30 @@
+# VCS / CI
+.git
+.github
+
+# 本地密钥与环境（构建不需要；运行期环境由 compose/部署注入）
+.env
+.env.*
+
+# 本地数据与构建产物（backend 镜像不携带；frontend 有独立 .dockerignore）
+/data
+/backend/data
+/media
+*.db
+node_modules
+frontend/node_modules
+frontend/dist
+
+# Python 缓存
+.venv
+.venv-py36
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.uv-cache
+
+# 文档与杂项
+docs
+uv.lock.bak
+*.log

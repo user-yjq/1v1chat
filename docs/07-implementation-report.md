@@ -191,6 +191,20 @@
 - 遗留：R-B6 备份/恢复演练仍 ⏸；M4.4（Docker 加固非 root/readiness、Makefile 修正）与 M4.5+（观测/审计/合规）待排期。
 - 结论：✅（sqlite 97 passed 3 skipped / PG 98 passed 2 skipped / test_prod_safety 9 passed / ruff 0）
 - 日期：2026-09-06
+
+### RPT-M4-006：M4.4 Docker 加固 + Makefile/依赖单入口（T-15，2026-09-06）
+
+- 范围：R-E5（镜像/容器加固）与 R-E6（Makefile/说明与依赖现状修正）。
+- 对照：08 §3 M4.4；依赖 M4.3 前置。
+- 完成项：ACC-M4-M44-001~005、ACC-M4-REG-007/008（CI docker job 待远端验证后回填）。
+- 变更与偏差：
+  - R-E5：`backend/Dockerfile` 改非 root（`USER 10001`，代码目录只读，仅 data/media 可写）；`backend/db/database.py` 新增 `db_is_ready()`（SELECT 1），`backend/main.py` 新增 `/api/health/ready`（DB 不可用回 503），compose healthcheck 与 frontend `depends_on: service_healthy` 对齐该端点；backend 数据/媒体由 bind `./data` 改为 named volume `app-data`/`app-media`（避免 root 属主 bind 与只读容器的权限冲突，镜像内预置媒体资产随卷初始化）；`frontend/nginx.conf` 删除未使用的 `/ws/` 代理；新增根 `.dockerignore` 与 `frontend/.dockerignore`；CI 增加 docker job（双镜像 build + 容器内 ready 200 冒烟）。
+  - R-E6：Makefile 整份重写——移除 requirements-py310/langgraph/chromadb/chroma/docker-compose-v1 残留，`test`/`lint` 直接使用仓库 `.venv`（不再经 uv 二次解析），`lock` 只输出 uv.lock + `backend/requirements.txt`；删除根 `requirements.txt`（陈旧副本）；`test_m44_release.py` 新增 6 条一致性用例锁定上述约定。
+  - 偏差说明：本机 Docker Hub 直连不可达（仅加速源，pip 拉取极慢），backend 镜像本地构建超时取消——镜像构建与冒烟验收交由 CI docker job 执行（GitHub runner 网络正常），本地仅完成 `docker compose config` 解析与单测/静态断言。
+- 风险触发：无。
+- 遗留：R-B6 备份/恢复演练 ⏸；R-D4 剩余（LLM 上游探测、request-id 串联）与 R-D1~D3 属 M4.5；CI actions 仍提示 Node 20 deprecation（checkout@v4/setup-python@v5），仅警告不影响通过，建议后续随 action 大版本一起升级。
+- 结论：✅（sqlite 103 passed 3 skipped / PG 104 passed 2 skipped / ruff 0 / make lint+test 通过；CI docker job 待远端实跑确认）
+- 日期：2026-09-06
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。

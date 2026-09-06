@@ -31,7 +31,7 @@
 | R-B3 | SQLite WAL/busy_timeout 未启用，与文档不符 | 02 ADR-07 声称已启用；`backend/db/database.py` 无 PRAGMA | 开发库补 `journal_mode=WAL`+`busy_timeout`（文档与代码对齐） | P2 | ✅ | 单测断言 WAL/busy_timeout=5000 |
 | R-B4 | 会话 state 迁移无版本化流程 | `engine2/schema.normalize_state` 容忍旧数据，但 schema 演进策略未定义 | 定义 state v2→v3 的迁移清单与灰度策略（旧会话可降级/迁移脚本） | P2 | ⏸ | 迁移演练记录 |
 | R-B5 | 消息查询无联合索引/分页 | `models/database.Message` 仅 `sent_at` 索引；`routers/conversation.py` 用 `.limit()` 无游标 | 加 `(conversation_id, sent_at)` 联合索引；消息列表改游标分页 | P2 | ⏸ | 万级消息会话接口 p95 达标 |
-| R-B6 | 无备份/恢复与数据保留策略 | 仅 `docker-compose` 卷挂 `data/`；无备份脚本/演练 | 增加 PG 备份（pg_dump）+ 恢复演练；定义聊天数据保留/归档策略 | P1 | ⏸ | 恢复演练报告 |
+| R-B6 | 无备份/恢复与数据保留策略 | compose 使用 named volume `app-data`（M4.4 起）；无备份脚本/演练 | 增加 PG 备份（pg_dump）+ 恢复演练；定义聊天数据保留/归档策略 | P1 | ⏸ | 恢复演练报告 |
 | R-B7 | 无用户数据导出/删除闭环 | 会话只有软归档 `status="archived"`（`routers/conversation.py`），无删除/导出 | 提供导出（JSON）与彻底删除接口，删除同时清 state/messages | P1 | ⏸ | 删除后数据不可恢复（抽查 DB） |
 
 ### 2.3 网关与安全
@@ -53,7 +53,7 @@
 | R-D1 | trace 有落库但无请求关联与汇聚 | `agent_trace` 落在最后一条 AI 消息（`routers/chat.py`）；无 request-id 串联前端→后端→LLM | 中间件注入 `X-Request-Id` 并写入 trace；日志/DB 可关联 | P1 | ⏸ | 一个会话可串出完整链路 |
 | R-D2 | 无运行指标 | 无 LLM 调用量/延迟/失败/Guard 拦截率/兜底率/破功样例计数 | 进程内计数器 + `/metrics`（或导出到观测平台）；Guard 命中抽样入指标 | P0 | ⏸ | 看板可观察关键指标 |
 | R-D3 | 无结构化日志/脱敏 | 依赖 uvicorn 默认日志；用户消息明文 | logging 结构化输出（JSON），内容字段脱敏/截断；错误堆栈带 request-id | P1 | ⏸ | 日志查询样例 |
-| R-D4 | 健康检查不查 DB/LLM 依赖 | `main.py /api/health` 只回固定 ok | 拆分 liveness（进程）与 readiness（DB + 上游配置探测） | P2 | ⏸ | 停库后 readiness 失败 |
+| R-D4 | 健康检查不查 DB/LLM 依赖 | `main.py /api/health` 只回固定 ok | 拆分 liveness（进程）与 readiness（DB + 上游配置探测） | P2 | 🚧 | DB 停库后 ready 503（M4.4 已落地）；LLM 上游探测 + request-id 链路留 M4.5 |
 
 ### 2.5 部署 / CI / 发布一致性
 
@@ -63,8 +63,8 @@
 | R-E2 | 版本号三处漂移 | `backend/main.py` 0.3.0-beta / 根 `pyproject.toml` 0.3.0b0 / README v0.4.0-alpha | 单一版本源（`backend/version.py`），pyproject 由测试锁同步 | P1 | ✅ | 单测断言 pyproject==version.py |
 | R-E3 | .env.example 与 compose 键过期/不全 | `.env.example` 残留 EMBEDDING/CHROMA；缺 engine2 全套键（ENGINE_VERSION/LLM_MODE/GUARD_*…）；compose 未注入新键 | 重写 .env.example 覆盖全部配置项；compose 显式传 ENGINE_VERSION、LLM_MODE、GUARD_* | P1 | ✅ | .env.example 25 键与 config.py 对照；compose 注入核心键 |
 | R-E4 | 默认仍跑 v1 引擎 | `backend/config.py ENGINE_VERSION="v1"` | v0.5 验收后默认切 v2，v1 移 `_legacy/`（04 §发布策略） | P1 | ⏸ | 双引擎回归 + 一键回滚演练 |
-| R-E5 | 镜像/容器待加固 | backend Dockerfile 以 root 运行、无 DB readiness；nginx 含未使用的 `/ws/` 代理 | 非 root 用户、健康探测对齐 readiness、清理死代理配置 | P2 | ⏸ | 容器扫描 + 手工验收 |
-| R-E6 | Makefile/说明与依赖现状不符 | Makefile 引用不存在的 `requirements-py310.txt`、注释残留 langgraph/chromadb | 修正脚本与注释；锁定单一依赖入口（pyproject+uv lock） | P2 | ⏸ | `make install/test/lint/docker-up` 全通 |
+| R-E5 | 镜像/容器待加固 | backend 以非 root（`USER 10001`）运行、数据/媒体走 named volume；新增 `/api/health/ready`（DB SELECT 1）并对齐 compose healthcheck；nginx 已去 `/ws/` 死代理；根/frontend `.dockerignore`；CI 新增 docker 镜像构建+readiness 冒烟 job | 保持最小镜像与只读代码目录；bind mount 需对齐 uid 10001 | P2 | ✅ | CI docker job 构建双镜像并 ready 200 冒烟（单测 test_m44_release.py） |
+| R-E6 | Makefile/说明与依赖现状不符 | Makefile 已重写：移除 requirements-py310/langgraph/chromadb/chroma 残留；test/lint 直接走仓库 `.venv`；单一依赖入口=pyproject+`backend/requirements.txt`（根 requirements.txt 已删除）；compose 健康检查对齐 ready | 改动依赖先改 pyproject，再 `make lock` 同步 | P2 | ✅ | `make lint/test` 通过；单测锁定依赖集合一致 |
 
 ### 2.6 合规与产品披露
 
@@ -83,7 +83,7 @@
 | M4.1 | PG 接入 + Alembic 基线迁移 + 备份/恢复演练 | — | R-B1/B2/B6 | 全量测试 PG 绿；迁移双路径验收 |
 | M4.2 | 多 worker 会话写者模型 + 限流外置 | M4.1 | R-A1/A3 | 双 worker 并发压测通过 |
 | M4.3 | 敏感默认值 fail-fast + 环境配置注入 + 单版本源 | — | R-C1/C4/E2/E3 | 单测 + 配置对照表 |
-| M4.4 | Docker 加固 + Makefile 修正（CI 质量门已随 R-E1 落地） | — | R-E5/E6 | PR 门禁与镜像验收 |
+| M4.4 | Docker 加固 + Makefile/依赖单入口修正（CI 质量门已随 R-E1 落地） | — | R-E5/E6（R-D4 readiness 部分） | PR 门禁 + 镜像构建冒烟（CI docker job）✅ |
 | M4.5 | 观测：request-id、指标、结构化日志、readiness | M4.2 | R-D1~D4 | 看板与日志样例 |
 | M4.6 | 管理审计 + token 刷新/撤销 + 登录防爆破 | M4.3 | R-C2/C3/C5/C6 | 安全边界用例绿 |
 | M4.7 | 合规披露 UI + flags 红线记录 + 隐私条款 + 删除/导出 | — | R-F1~F3/B7 | 合规评审通过 |
@@ -112,6 +112,6 @@
 ## 6. 状态速览
 
 - 本表为 M4 阶段一评审基线：共 31 项缺口，其中 P0 7 项（R-A1、R-B1、R-B2、R-C1、R-D2、R-E1、R-F1）。
-- 已落地：R-C1 ✅、R-B3 ✅、R-E1 ✅（CI 多次 success）、R-E2 ✅、R-E3 ✅；M4.1：R-B1 ✅、R-B2 ✅；M4.2：R-A1 ✅、R-A3 ✅；M4.3：R-C4 ✅（R-B6 备份/恢复仍 ⏸）。
-- 实施记录：M4.1 PG+Alembic（RPT-M4-003）；M4.2 跨 worker 会话锁 + Redis 限流（RPT-M4-004）；M4.3 prod CORS 校验 + env/compose 键一致（RPT-M4-005）。
+- 已落地：R-C1 ✅、R-B3 ✅、R-E1 ✅（CI 多次 success）、R-E2 ✅、R-E3 ✅；M4.1：R-B1 ✅、R-B2 ✅；M4.2：R-A1 ✅、R-A3 ✅；M4.3：R-C4 ✅；M4.4：R-E5 ✅、R-E6 ✅；R-D4 🚧（readiness DB 探测已落地，上游探测/链路留 M4.5）。（R-B6 备份/恢复仍 ⏸。）
+- 实施记录：M4.1 PG+Alembic（RPT-M4-003）；M4.2 跨 worker 会话锁 + Redis 限流（RPT-M4-004）；M4.3 prod CORS 校验 + env/compose 键一致（RPT-M4-005）；M4.4 Docker 加固 + Makefile/依赖单入口（RPT-M4-006）。
 - 每完成一项：回填本节状态 → 06 台账登记 → 07 实施报告追加 → 更新 00/04 看板。
