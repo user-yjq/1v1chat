@@ -23,6 +23,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       LLM_MODE: mock
       DEEPSEEK_API_KEY: sk-placeholder
@@ -55,6 +64,11 @@ jobs:
         working-directory: backend
         env:
           TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+      - name: Test ratelimit (redis)
+        run: pytest -q -p no:warnings tests/engine2_core/test_ratelimit_redis.py
+        working-directory: backend
+        env:
+          REDIS_URL: redis://localhost:6379/0
 
   frontend:
     name: Frontend build

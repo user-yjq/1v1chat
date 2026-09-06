@@ -17,9 +17,9 @@
 
 | ID | 缺口 | 现状（证据） | 加固建议 | 优先级 | 状态 | 验收方式 |
 |----|------|--------------|----------|--------|------|----------|
-| R-A1 | 会话锁只在单进程内存内 | `backend/engine2/pipeline.py` 模块级 `_LOCKS`；多 uvicorn worker 各自持有，并发会互相覆盖 state（违反 NFR-PERF-3） | 切 PostgreSQL 后用行级锁/唯一写者（乐观版本号 + `SELECT ... FOR UPDATE`），或引入单写者队列 | P0 | ⏸ | 两 worker 并发同会话压测不丢消息/不乱序 |
+| R-A1 | 会话锁只在单进程内存内 | `backend/engine2/pipeline.py` 模块级 `_LOCKS`；多 uvicorn worker 各自持有，并发会互相覆盖 state（违反 NFR-PERF-3） | 切 PostgreSQL 后用行级锁/唯一写者 | P0 | ✅ | PG advisory xact lock（routers/chat.py）；PG 并发测试通过 |
 | R-A2 | LLM 上游无熔断与预算护栏 | `llm/provider.py` 仅 tenacity 3 次指数退避；上游持续故障时每轮仍等超时再走兜底 | 加错误率熔断（阈值+半开）、按用户/全局并发与 token 预算；超限直接走降级话术 | P1 | ⏸ | 注入故障：熔断后 P95 回落、兜底率有指标 |
-| R-A3 | 限流为进程内滑动窗口 | `backend/core/ratelimit.py`；多 worker 各自计数（NFR-SEC-3 在多实例下失效） | 网关层或 Redis 滑动窗口；保留本进程实现作为单机回退 | P1 | ⏸ | 双实例压测 429 行为一致 |
+| R-A3 | 限流为进程内滑动窗口 | `backend/core/ratelimit.py`；多 worker 各自计数（NFR-SEC-3 在多实例下失效） | 网关层或 Redis 计数；保留本进程实现作为单机回退 | P1 | ✅ | REDIS_URL 生效（INCR+EXPIRE 61s），Redis 故障自动降级进程内 |
 | R-A4 | 无任务队列/背压 | 聊天为同步 HTTP 单轮处理；长轮询/后续 WebSocket 无队列 | v0.5 先不引队列；接入 WS 或重负载时再评估（进程内 asyncio.Queue + DB 乐观锁） | P2 | ⏸ | 负载模型压测通过后评审 |
 
 ### 2.2 数据与迁移
@@ -112,6 +112,6 @@
 ## 6. 状态速览
 
 - 本表为 M4 阶段一评审基线：共 31 项缺口，其中 P0 7 项（R-A1、R-B1、R-B2、R-C1、R-D2、R-E1、R-F1）。
-- 已落地：R-C1 ✅、R-B3 ✅、R-E1 🚧（待远端）、R-E2 ✅、R-E3 ✅；M4.1：R-B1 ✅、R-B2 ✅（备份/恢复 R-B6 仍 ⏸）。
-- 实施记录：本次为 M4.1 PG+Alembic（见 RPT-M4-003），M4.2 多 worker 写者模型可在此基础上开工。
+- 已落地：R-C1 ✅、R-B3 ✅、R-E1 🚧（待远端）、R-E2 ✅、R-E3 ✅；M4.1：R-B1 ✅、R-B2 ✅；M4.2：R-A1 ✅、R-A3 ✅（R-B6 备份/恢复仍 ⏸）。
+- 实施记录：M4.1 PG+Alembic（RPT-M4-003）；M4.2 跨 worker 会话锁 + Redis 限流（RPT-M4-004）。
 - 每完成一项：回填本节状态 → 06 台账登记 → 07 实施报告追加 → 更新 00/04 看板。

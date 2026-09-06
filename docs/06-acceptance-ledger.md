@@ -154,6 +154,12 @@
 | ACC-M4-M41-004 | 工程 | conftest 支持 TEST_DATABASE_URL（PG 测试库） | `pytest`（sqlite/PG 两态） | 双态全绿 | 通过 | backend/tests/conftest.py | ✅ | 2026-09-05 |
 | ACC-M4-M41-005 | 工程 | CI 增加 postgres service：迁移 + sqlite/PG 双跑 | workflow 审阅 | 可运行 | 待 GitHub 远端验证 | .github/workflows/ci.yml | 🚧 | 2026-09-05 |
 | ACC-M4-REG-002 | 单测 | 全量回归（sqlite） | `pytest backend` | 93 passed | 93 passed in 2.05s | 测试输出 | ✅ | 2026-09-05 |
+| ACC-M4-M42-001 | 单测 | PG advisory 会话锁：同会话跨连接串行 | `test_pg_concurrency.py`（PG） | ≥0.8s 阻塞 | 3 passed | routers/chat._acquire_turn_lock | ✅ | 2026-09-05 |
+| ACC-M4-M42-002 | 单测 | sqlite 下锁函数 no-op + 锁键稳定 | 同上（sqlite） | 不抛/键稳定 | 通过 | test_pg_concurrency.py | ✅ | 2026-09-05 |
+| ACC-M4-M42-003 | 单测 | Redis 限流：3/3 后 429；故障降级进程内 | `test_ratelimit_redis.py`（REDIS_URL） | 全绿 | 2 passed | core/ratelimit.py | ✅ | 2026-09-05 |
+| ACC-M4-M42-004 | 工程 | CI 增加 redis service 与专属限流测试步骤 | workflow 审阅 | 可运行 | 待 GitHub 远端验证 | .github/workflows/ci.yml | 🚧 | 2026-09-05 |
+| ACC-M4-REG-003 | 单测 | 全量回归（sqlite） | `pytest backend` | 95 passed, 3 skipped | 95 passed, 3 skipped in 2.76s | 测试输出 | ✅ | 2026-09-05 |
+| ACC-M4-REG-004 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 96 passed | 96 passed, 2 skipped in 6.52s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-05 |
 
 ## 6. 后续登记区
 

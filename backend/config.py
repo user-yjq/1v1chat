@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # 数据库
     DATABASE_URL: str = "sqlite:///./data/1v1chat.db"
 
+    # 可选 Redis（R-A3）：多 worker 限流共享计数；留空则用进程内实现
+    REDIS_URL: str = ""
+
     # 应用
     APP_ENV: str = "dev"            # dev / prod（prod 触发 fail-fast 校验，见 validate_prod_settings）
     APP_HOST: str = "0.0.0.0"

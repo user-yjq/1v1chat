@@ -27,6 +27,9 @@ dependencies = [
     # 数据迁移 / PostgreSQL（M4.1）
     "alembic==1.13.2",
     "psycopg2-binary==2.9.9",
+
+    # 可选 Redis 限流共享计数（M4.2 R-A3；留空 REDIS_URL 即不启用）
+    "redis==5.0.7",
 ]
 
 [project.optional-dependencies]

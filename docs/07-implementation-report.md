@@ -157,6 +157,23 @@
 - 验证证据：本地起 `postgres:16-alpine`（127.0.0.1:54331，容器 `1v1chat-pg`）后——upgrade head 成功、alembic check 无漂移、`TEST_DATABASE_URL` 全量 93 passed in 4.49s。
 - 风险/遗留：R-B6 备份恢复脚本与演练仍未做（P1，另项）；R-11 多 worker 写者模型属 M4.2，本步未改 engine2 锁语义。
 - 结论：✅（PG 迁移与全量测试通过；sqlite 93 绿 + ruff 0）
+- 日期：2026-09-05### RPT-M4-004：M4.2 跨 worker 会话锁 + Redis 限流（T-15，2026-09-05）
+
+- 范围：R-A1（多 worker 同会话串行化）与 R-A3（限流外置）。
+- 对照：03 §并发、08 §3 M4.2；依赖 M4.1 PG 前置。
+- 完成项：ACC-M4-M42-001~004、ACC-M4-REG-003。
+- 变更与偏差：
+  - R-A1：`routers/chat.py` 新增 `_acquire_turn_lock()`——PG 下对 conversation 取 `pg_advisory_xact_lock`（63-bit 稳定键，
+    随事务 commit/rollback 自动释放），engine2 路径在推理前持锁，读-处理-写在同一事务串行；SQLite 单写者自动 no-op。
+    与 engine2 进程内锁互补：单进程 asyncio 串行 + 跨进程 advisory 串行。
+  - R-A3：`core/ratelimit.py` 支持可选 Redis（`REDIS_URL`），用 INCR+EXPIRE 61s 固定窗口；未配置或 Redis 异常时自动降级回进程内滑动窗口。
+    `reset()` 同时清理进程内与 Redis `rl:*` 键。
+  - 依赖新增 `redis==5.0.7`；config 新增 `REDIS_URL`（默认空）。
+  - CI：backend job 增加 redis:7-alpine service 与 “Test ratelimit (redis)” 步骤；PG 步骤自动跑 advisory 并发测试。
+- 验证证据：本地 PG16（127.0.0.1:54331）`test_pg_concurrency.py` 3 passed（阻塞 ≥0.8s 证明串行）；
+  本地 Redis7（127.0.0.1:56379）`test_ratelimit_redis.py` 2 passed。
+- 遗留：多 worker 端到端压测（双 uvicorn worker 并发同会话）需在可联网/编排环境跑；R-B6 备份恢复演练未做。
+- 结论：✅（sqlite 全量 + PG 并发 + Redis 限流本地全绿；ruff 0）
 - 日期：2026-09-05
 ---
 

@@ -14,6 +14,7 @@ from models.database import Conversation, Message, User
 from models.schemas import ChatResponse, MessageOut
 from pydantic import BaseModel
 from services import chat_engine, chat_engine2
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/chat", tags=["聊天"])
@@ -45,6 +46,27 @@ def ensure_message_length(content: str) -> None:
                             detail=f"消息过长（上限 {settings.MSG_MAX_LEN} 字）")
 
 
+_LOCK_MULT = 0x9E3779B97F4A7C15  # 用于把 conversation_id 打散成稳定的 63-bit 键
+
+
+def _lock_key(conversation_id: int) -> int:
+    """确定性 63-bit 正整数键（避免 Python hash 随机化导致跨进程不一致）。"""
+    key = conversation_id * _LOCK_MULT
+    return (key ^ (key >> 33)) & ((1 << 63) - 1)
+
+
+def _acquire_turn_lock(db: Session, conversation_id: int) -> None:
+    """PG：advisory xact lock 串行同一会话写入（多 worker，R-A1）。
+
+    锁随当前事务 commit/rollback 自动释放；engine2 进程内锁继续兜底单进程并发；
+    SQLite 为库级单写者，跳过本锁。
+    """
+    if db.get_bind().dialect.name != "postgresql":
+        return
+    db.execute(text("SELECT pg_advisory_xact_lock(:key)"),
+               {"key": _lock_key(conversation_id)})
+
+
 @router.post("/send", response_model=ChatResponse)
 async def send_message(
     payload: _ChatPayload,
@@ -67,6 +89,7 @@ async def send_message(
 
     try:
         if settings.ENGINE_VERSION == "v2":
+            _acquire_turn_lock(db, conv.id)
             ai_plans, trace, state = await chat_engine2.process_message2(
                 conv.id, payload.content, user.id, db)
             conv.state = state
