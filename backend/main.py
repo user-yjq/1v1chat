@@ -8,7 +8,7 @@ from config import settings, validate_prod_settings
 from core.admin_bootstrap import bootstrap_admin_if_configured
 from core.logging import configure_logging
 from core.metrics import render as render_metrics
-from core.middleware import ObservabilityMiddleware
+from core.middleware import ApiNoStoreMiddleware, ObservabilityMiddleware
 from db.database import db_is_ready, init_db, run_migrations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -59,6 +59,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(ObservabilityMiddleware)
+app.add_middleware(ApiNoStoreMiddleware)
 
 app.include_router(auth_router)
 app.include_router(chat_router)

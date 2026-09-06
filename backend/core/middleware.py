@@ -56,3 +56,29 @@ class ObservabilityMiddleware:
                 "status": code, "duration_ms": round(seconds * 1000, 1),
             })
             reset_request_id(token)
+
+
+class ApiNoStoreMiddleware:
+    """API 响应禁止缓存：/api/* 一律带 Cache-Control: no-store。
+
+    防浏览器/中间代理把旧响应（如人设列表）当新鲜缓存返回，
+    导致部署/seed 后前端仍看到空数据。静态资源不走本中间件。
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") != "http" or not scope.get("path", "").startswith("/api/"):
+            await self.app(scope, receive, send)
+            return
+
+        async def _send(message):
+            if message["type"] == "http.response.start":
+                header_list = list(message.get("headers") or [])
+                if not any(k.lower() == b"cache-control" for k, _ in header_list):
+                    header_list.append((b"cache-control", b"no-store"))
+                message = {**message, "headers": header_list}
+            await send(message)
+
+        await self.app(scope, receive, _send)

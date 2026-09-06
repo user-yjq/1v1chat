@@ -8,6 +8,8 @@
 
       <div v-if="loading" class="text-center text-gray-400 py-16">加载人设中...</div>
 
+      <div v-else-if="error" class="text-center text-red-400 py-16">{{ error }}</div>
+
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div v-for="p in personas" :key="p.id"
              @click="startWith(p)"
@@ -40,6 +42,7 @@ const router = useRouter()
 const convStore = useConversationStore()
 const personas = ref<any[]>([])
 const loading = ref(true)
+const error = ref('')
 
 const POLICY_TEXT: Record<string, string> = {
   instant: '爱分享，要照片就给',
@@ -61,7 +64,7 @@ onMounted(async () => {
   try {
     personas.value = await convStore.fetchPersonas()
   } catch (e) {
-    // 未登录会跳转
+    error.value = '人设加载失败，请刷新重试；若持续失败请联系管理员'
   } finally {
     loading.value = false
   }
