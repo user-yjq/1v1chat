@@ -307,7 +307,7 @@
 
 - 范围：R-B7 遗留收尾（账号级整体导出/删除，原为对话级）。起点：v0.5.0 已发布，本步进入 v0.6.0 候选线（M5，不 bump 版本，收口时单源 bump）。
 - 对照：08 §2.2 R-B7、03 §16.1、09 §7 遗留、04 §5（候选线策略）。
-- 完成项：ACC-M5-M51-001~003、ACC-M5-REG-001/002。
+- 完成项：ACC-M5-M51-001~004、ACC-M5-REG-001/002（004=CI 远端 success）。
 - 变更与偏差：
   - 新增 `backend/routers/account.py`：`GET /api/me/data`（导出 account 概览 + 全部会话含归档 + 消息，最小化字段）；`DELETE /api/me/data`（彻底删除消息/会话含 state、refresh tokens、账号本身，删除后不可恢复；共享目录 personas/scenarios 保留）。
   - 复用重构：`routers/conversation.py` 抽出 `conversation_export_body(db, conv)`（对话级与账号级共用同一最小化导出载荷），对话导出端点行为不变（补 `exported_at`）。
@@ -316,7 +316,7 @@
   - 文档同步：03 §16.1、04（M5 里程碑 + T-16 + §5 候选线）、00（v0.6 行）、08 R-B7 备注、09 §7 移除已办行。
 - 风险触发：无（实现中发现并修正批量删除幽灵对象陷阱，已单测覆盖）。
 - 遗留：HTTP 级 E2E（真实注册→导出→删除→401）待前端/联网环境补；审计 `account.purge` 暂无可视化入口（admin 审计列表仍可查 action）；T-16 其余 M5 遗留见 09 §7。
-- 结论：✅（m51 单测 5 passed；ruff 0；sqlite 全量 148 passed 3 skipped in 4.53s / PG 全量 149 passed 2 skipped in 14.61s）
+- 结论：✅（m51 单测 5 passed；ruff 0；sqlite 全量 148 passed 3 skipped in 4.53s / PG 全量 149 passed 2 skipped in 14.61s；CI 远端 success，run 34016305655，1m21s）
 - 日期：2026-09-06
 ---
 
