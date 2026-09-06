@@ -197,6 +197,7 @@
 | ACC-M4-M47-005 | 单测 | R-B7 数据导出/彻底删除：export 返回会话+完整消息（不含内部字段）、非属主 404；purge 删消息与会话（含 state）后 DB 无残留；软归档语义不变 | `pytest tests/engine2_core/test_m47_compliance.py` | 全绿 | 通过 | routers/conversation.py（export/purge/delete） | ✅ | 2026-09-06 |
 | ACC-M4-REG-013 | 单测 | 全量回归（sqlite） | `pytest backend` | 全绿 | 131 passed, 3 skipped in 4.26s | 测试输出 | ✅ | 2026-09-06 |
 | ACC-M4-REG-014 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 132 passed, 2 skipped in 11.83s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
+| ACC-M4-M47-006 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 + redis 限流 + docker 冒烟 + 前端 build | GitHub Actions push（run 34014308606） | 全绿 | success（53s，三 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 
 ## 6. 后续登记区
 
