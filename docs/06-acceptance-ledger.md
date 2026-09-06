@@ -249,6 +249,7 @@
 | ACC-M5-M54-001 | 工程 | 走查脚本可执行（readiness/meta/注册/人设/真模型回合/照片策略/导出/删除闭环/admin 抽查），仅 stdlib | `ruff check scripts/walkthrough_live.py` + `python -m py_compile` | 0 错 | All checks passed + compile OK | scripts/walkthrough_live.py | ✅ 工具就绪 | 2026-09-06 |
 | ACC-M5-M54-002 | 走查 | 手册成文：前置条件/自动断言清单/人工真模型评测矩阵（FR-03~06、红线）/压测大纲（p95<3s、同会话并发、分页、429） | 文档评审 | 与 01/09 一致 | 成文（docs/10，91 行） | docs/10-live-walkthrough.md | ✅ 成文 | 2026-09-06 |
 | ACC-M5-M54-003 | E2E | 真实环境执行：walkthrough_live 全绿 + 人工 4 人设走查 + 压测读数 | 在公网实例运行 §3 命令 | exit 0 | 待执行 | evidence/*.json | ⏸ 待线上执行 | — |
+| ACC-M5-M54-004 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 + 前端 build（含脚本 ruff 检查） | GitHub Actions push（run 34018239569） | 全绿 | success（1m13s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 
 ## 6. 后续登记区
 

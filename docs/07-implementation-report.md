@@ -355,14 +355,14 @@
 
 - 范围：把“部署试运行 + M3 真模型走查 + 压测大纲”沉淀为可直接在公网环境执行的工具链（scripts/walkthrough_live.py + docs/10-live-walkthrough.md）。
 - 对照：01（FR/NFR/红线）、03、09（部署与回滚）、M3（probes 试探集：DOUBT_PROBES/SIGNAL_PROBES）。
-- 完成项：ACC-M5-M54-001/002（工具与手册就绪）；003（真实环境执行）为 ⏸ 待回填。
+- 完成项：ACC-M5-M54-001/002/004（001/002 工具与手册就绪；004=CI 远端 success）；003（真实环境执行）为 ⏸ 待回填。
 - 变更与偏差：
   - `scripts/walkthrough_live.py`（纯 stdlib，无新依赖）：硬断言覆盖 readiness/meta、注册、人设会话、真模型回合（200+落库+agent_trace）、照片策略确定性（instant 发图/其余不发）、会话/账号导出（无内部字段）、删除闭环（DELETE 后旧 token 401、他号不受影响）、可选 admin 只读抽查；AI 露馅命中仅进 review 清单（真模型文案不做自动硬判定）；产出 JSON 报告并支持 --keep-data/--max-personas/--no-photo-probe。
   - `docs/10-live-walkthrough.md`：前置条件、自动断言清单（对应 ACC-M5-M54-*）、人工评测矩阵（FR-03~06 + 01 §5 红线）、压测大纲（01 NFR-PERF-2/3 判定：真模型 p95<3s、同会话并发不乱序、万级分页、限流/锁）。
   - 沙箱无公网/模型 key，脚本仅本地 ruff+py_compile 验证；真实执行留待部署环境。
 - 风险触发：无。
 - 遗留：公网实例执行 §3 命令并回填 ACC-M5-M54-003；人工 4 人设评审与压测读数入 06 PERF 行；评审通过后方可把 M5 里程碑置 ✅（打 v0.6.0 tag）。
-- 结论：✅ 工具/手册就绪（ruff 0 + py_compile OK；docs/10 与 01/09 口径一致）；线上执行待外部环境。
+- 结论：✅ 工具/手册就绪（ruff 0 + py_compile OK；docs/10 与 01/09 口径一致；CI 远端 success，run 34018239569，1m13s）；线上执行待外部环境。
 - 日期：2026-09-06
 ---
 
