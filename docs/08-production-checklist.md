@@ -31,7 +31,7 @@
 | R-B3 | SQLite WAL/busy_timeout 未启用，与文档不符 | 02 ADR-07 声称已启用；`backend/db/database.py` 无 PRAGMA | 开发库补 `journal_mode=WAL`+`busy_timeout`（文档与代码对齐） | P2 | ✅ | 单测断言 WAL/busy_timeout=5000 |
 | R-B4 | 会话 state 迁移无版本化流程 | `engine2/schema.normalize_state` 容忍旧数据，但 schema 演进策略未定义 | 定义 state v2→v3 的迁移清单与灰度策略（旧会话可降级/迁移脚本） | P2 | ⏸ | 迁移演练记录 |
 | R-B5 | 消息查询无联合索引/分页 | `models/database.Message` 仅 `sent_at` 索引；`routers/conversation.py` 用 `.limit()` 无游标 | 加 `(conversation_id, sent_at)` 联合索引；消息列表改游标分页 | P2 | ⏸ | 万级消息会话接口 p95 达标 |
-| R-B6 | 无备份/恢复与数据保留策略 | compose 使用 named volume `app-data`（M4.4 起）；无备份脚本/演练 | 增加 PG 备份（pg_dump）+ 恢复演练；定义聊天数据保留/归档策略 | P1 | ⏸ | 恢复演练报告 |
+| R-B6 | 无备份/恢复与数据保留策略 | 已落地 `scripts/backup_pg.sh`/`restore_pg.sh`/`drill_pg_backup_restore.sh` + 保留策略（03 §16）：pg_dump -Fc + sha256 + 30 天轮转、恢复防误覆盖同名库、演练逐表行数比对 PASS | 上线按 cron 每日备份（RPO ≤24h）；SQLite 开发库直接拷贝 data 文件 | P1 | ✅ | 演练 PASS（6 表行数一致，06 ACC-M4-B6-001） |
 | R-B7 | 无用户数据导出/删除闭环 | 会话只有软归档 `status="archived"`（`routers/conversation.py`），无删除/导出 | 提供导出（JSON）与彻底删除接口，删除同时清 state/messages | P1 | ⏸ | 删除后数据不可恢复（抽查 DB） |
 
 ### 2.3 网关与安全
@@ -112,6 +112,6 @@
 ## 6. 状态速览
 
 - 本表为 M4 阶段一评审基线：共 31 项缺口，其中 P0 7 项（R-A1、R-B1、R-B2、R-C1、R-D2、R-E1、R-F1）。
-- 已落地：R-C1 ✅、R-B3 ✅、R-E1 ✅（CI 多次 success）、R-E2 ✅、R-E3 ✅；M4.1：R-B1 ✅、R-B2 ✅；M4.2：R-A1 ✅、R-A3 ✅；M4.3：R-C4 ✅；M4.4：R-E5 ✅、R-E6 ✅；R-D4 🚧（readiness DB 探测已落地，上游探测/链路留 M4.5）。（R-B6 备份/恢复仍 ⏸。）
-- 实施记录：M4.1 PG+Alembic（RPT-M4-003）；M4.2 跨 worker 会话锁 + Redis 限流（RPT-M4-004）；M4.3 prod CORS 校验 + env/compose 键一致（RPT-M4-005）；M4.4 Docker 加固 + Makefile/依赖单入口（RPT-M4-006）。
+- 已落地：R-C1 ✅、R-B3 ✅、R-B6 ✅（备份/恢复演练 PASS + 保留策略 03 §16）、R-E1 ✅（CI 多次 success）、R-E2 ✅、R-E3 ✅；M4.1：R-B1 ✅、R-B2 ✅；M4.2：R-A1 ✅、R-A3 ✅；M4.3：R-C4 ✅；M4.4：R-E5 ✅、R-E6 ✅；R-D4 🚧（readiness DB 探测已落地，上游探测/链路留 M4.5）。
+- 实施记录：M4.1 PG+Alembic（RPT-M4-003）；M4.2 跨 worker 会话锁 + Redis 限流（RPT-M4-004）；M4.3 prod CORS 校验 + env/compose 键一致（RPT-M4-005）；M4.4 Docker 加固 + Makefile/依赖单入口（RPT-M4-006）；R-B6 PG 备份/恢复演练与保留策略（RPT-M4-007）。
 - 每完成一项：回填本节状态 → 06 台账登记 → 07 实施报告追加 → 更新 00/04 看板。

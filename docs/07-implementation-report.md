@@ -206,6 +206,22 @@
 - 遗留：main 分支 required checks（PR 门禁强制化）需仓库 admin 在 GitHub 设置开启——当前 PAT 无 branch-protection 权限（HTTP 403），已具备 CI 全 job 绿但未强制。
 - 结论：✅（sqlite 103 passed 3 skipped / PG 104 passed 2 skipped / ruff 0 / make lint+test 通过；CI 含 docker 镜像构建+readiness 冒烟已远端 success）
 - 日期：2026-09-06
+
+### RPT-M4-007：R-B6 PG 备份/恢复演练与数据保留策略（T-15，2026-09-06）
+
+- 范围：R-B6（无备份/恢复与数据保留策略）。
+- 对照：08 R-B6、03 §16；为 M4.1 遗留的跨期缺口。
+- 完成项：ACC-M4-B6-001~003。
+- 变更与偏差：
+  - 新增 `scripts/backup_pg.sh`：`pg_dump -Fc` + sha256 + 按库轮转（`RETAIN_DAYS` 默认 30）；接受 SQLAlchemy URL（`+psycopg2` 自动转 libpq）。
+  - 新增 `scripts/restore_pg.sh`：`pg_restore --clean --if-exists --no-owner --no-privileges`；显式 `CONFIRM_RESTORE=1` 才执行；提供 `SOURCE_DATABASE_URL` 且目标与源同名时拒绝（防误覆盖源库）。
+  - 新增 `scripts/drill_pg_backup_restore.sh`：可复跑演练——建一次性源库 → alembic 迁移 → 插入标记数据（scenario/persona/user/conversation/messages 各 1~2 行）→ 备份 → 恢复到一次性目标库 → 逐表行数比对 → 自动清理两库。
+  - 客户端版本适配：首次演练用本机 PG13 客户端备份 PG16 服务器被 `pg_dump` 拒绝（server 16.14 vs client 13.23 major 不一致）——为标准行为。脚本增加 `PG_DOCKER=<容器名>` 容器模式（`docker exec -i` + 容器内 127.0.0.1:5432 地址），最终演练以 `PG_DOCKER=1v1chat-pg` 执行 PASS。
+  - 策略文档：03 §16 数据保留（全量在线保留 + 软归档语义、默认不自动删除、R-B7 未实现前不承诺彻底删除）、备份（每日 + 30 天轮转 → RPO ≤24h）、恢复安全约束与验证标准、cron 示例。
+- 风险触发：无。
+- 遗留：备份定时任务需在真实部署环境启用 cron（本沙箱仅演示）；R-B7 用户删除/导出落地后回填 16.1 删除口径；SQLite 开发库备份为手动拷贝 data 文件（不设脚本）。
+- 结论：✅（演练 PASS：6 表行数 src==dst；产物含 sha256；bash -n 通过）
+- 日期：2026-09-06
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。

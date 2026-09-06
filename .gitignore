@@ -61,6 +61,9 @@ chroma_data/
 .coverage
 htmlcov/
 
+# Database backups (R-B6): 演练/定时备份产物不入库
+backups/
+
 # Frontend
 node_modules/
 frontend/dist/

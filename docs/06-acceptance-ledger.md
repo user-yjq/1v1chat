@@ -172,6 +172,9 @@
 | ACC-M4-M44-005 | 边界 | R-D4 部分落地：DB 断连 → readiness 503（单元级 connect 异常 → False） | `test_db_is_ready_false_when_connect_fails` | False 不抛 | 通过 | backend/main.py `health_ready` | 🚧 | 2026-09-06 |
 | ACC-M4-REG-007 | 单测 | 全量回归（sqlite） | `pytest backend` | 全绿 | 103 passed, 3 skipped in 2.44s | 测试输出 | ✅ | 2026-09-06 |
 | ACC-M4-REG-008 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 104 passed, 2 skipped in 6.62s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
+| ACC-M4-B6-001 | 集成 | 备份/恢复演练 PASS：建一次性源库 → alembic 迁移 → 插标记数据 → `backup_pg.sh` → 恢复到一次性目标库 → 逐表行数比对 | `ADMIN_DATABASE_URL=<pg> PG_DOCKER=1v1chat-pg ./scripts/drill_pg_backup_restore.sh` | 6 表行数一致 | PASS（alembic_version/conversations/messages/personas/scenarios/users 全一致） | backups/*.dump + sha256；scripts/drill_pg_backup_restore.sh | ✅ | 2026-09-06 |
+| ACC-M4-B6-002 | 工程 | 备份/恢复脚本：`backup_pg.sh`（pg_dump -Fc+sha256+30 天轮转）、`restore_pg.sh`（CONFIRM_RESTORE=1 + 同名库拒覆）；支持 SQLAlchemy URL 与 `PG_DOCKER` 容器模式 | `bash -n` + 演练实测 | 语法/逻辑正确 | 通过 | scripts/backup_pg.sh、scripts/restore_pg.sh | ✅ | 2026-09-06 |
+| ACC-M4-B6-003 | 文档 | 数据保留/备份/恢复策略落地（保留语义、RPO/RTO 目标、cron 示例） | 文档评审 | 与代码一致 | 通过 | docs/03 §16 | ✅ | 2026-09-06 |
 
 ## 6. 后续登记区
 

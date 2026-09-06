@@ -263,3 +263,44 @@ STATE_FACTS_MAX: int = 20
 - `nodes/*.py` → `StateGraph` 节点（签名 `node(state) -> updates`，与现契约同构）；
 - `TurnContext.state` → checkpointer 持久化（保留 DB 冗余以便回放与审计）；
 - 测试不改语义：以 `tests/engine2_core/` 为回归基线对比 v1/v2 行为。
+
+## 16. 数据保留、备份与恢复策略（R-B6）
+
+### 16.1 保留语义（现状与边界）
+
+- 在线保留：`users / conversations / messages / personas / scenarios` 全量保留；会话软归档（`status="archived"`）仅用户侧隐藏，数据仍保留，可供后台审计与反诈/合规复查。
+- 用户数据删除/导出接口（R-B7）尚未实现；本策略在 R-B7 落地后同步更新“彻底删除后不可恢复”的保证口径。
+- 不承诺自动清理：默认无自动删除时间窗口；确需业务保留窗口时另立配置（P 类需求评审后冻结）。
+
+### 16.2 备份
+
+- 对象：PostgreSQL（生产候选存储；SQLite 开发库直接拷贝 `data/` 下 `.db`/`-wal`/`-shm` 文件即可）。
+- 工具：`scripts/backup_pg.sh`——`pg_dump -Fc` + sha256 + 按库轮转（`RETAIN_DAYS`，默认 30 天）。接受 SQLAlchemy URL（`postgresql+psycopg2://`），也支持 `PG_DOCKER=<容器名>` 用容器内同版本客户端。
+- 产物：`backups/<库名>_<时间戳>.dump(.sha256)`，目录不入库（`.gitignore` 已排除）。
+- 目标（上线执行）：每日一次、保留 30 天 → RPO ≤ 24h；恢复为人工流程（脚本化），演练脚本保证可复跑。
+
+### 16.3 恢复
+
+- `scripts/restore_pg.sh`：从 `.dump` 恢复到目标库（`--clean --no-owner --no-privileges`）。
+- 安全约束：必须显式 `CONFIRM_RESTORE=1`；目标库名与备份源库同名时拒绝（除非 `FORCE_RESTORE=1`），防误覆盖源库。
+- 验证标准：恢复后逐表行数与备份源一致（演练脚本内置比对）。
+
+### 16.4 演练（R-B6 验收证据）
+
+```bash
+# 本机同 major 客户端
+ADMIN_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54331/postgres \
+  ./scripts/drill_pg_backup_restore.sh
+# 客户端版本不匹配时走容器内工具
+ADMIN_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54331/postgres \
+  PG_DOCKER=1v1chat-pg ./scripts/drill_pg_backup_restore.sh
+```
+
+演练流程：建一次性源库 → alembic 迁移 → 插入标记数据（scenario/persona/user/conversation/messages）→ `backup_pg.sh` → 恢复到一次性目标库 → 逐表行数比对 → 清理两库；PASS 即验收通过（登记 06/07）。
+
+### 16.5 定时备份（cron 示例，部署时启用）
+
+```cron
+30 2 * * * cd /opt/1v1chat && DATABASE_URL=postgresql://.../1v1chat \
+  ./scripts/backup_pg.sh >> backups/backup.log 2>&1
+```
