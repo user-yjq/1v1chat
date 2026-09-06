@@ -414,6 +414,20 @@
 - 日期：2026-09-06
 ---
 
+### RPT-M5-008：真模型走查与人工评审素材包（2026-09-06）
+
+- 范围：把 ACC-M5-M54-003 的“真模型”部分在本地 compose 实例上闭环（公网可达性仍缺，见遗留）。
+- key 定位：根 `.env` 的 `DEEPSEEK_API_KEY`（20 位）是占位，`GET /models` 返回 401；真实 key（35 位标准格式）在 `backend/.env`（gitignored、已被 `.dockerignore` 排除不进镜像），`GET /models` 200（可用模型 deepseek-v4-flash/pro；`deepseek-chat` 别名仍可用，1-token 调用验证 200）。部署须经 compose/壳层注入 key，不能依赖 backend/.env 进镜像。
+- 变更与偏差：无代码改动；仅以 `DEEPSEEK_API_KEY=<backend/.env>` + `DATABASE_URL=sqlite:///./data/1v1chat.db` + `REDIS_URL=` 壳层覆盖重建 backend（LLM 模式 auto，readiness 显示 “DEEPSEEK_API_KEY 已配置”）。
+- 结果：
+  - 真模型走查 22/22 PASS exit 0：4 人设（小雨/桃桃/阿静/雪儿）真实回合延迟 1.2–2.5s，照片策略确定性断言全过（instant 发图/其余不发），露馅扫描 0；证据 `evidence/walkthrough-20260906-171806.json`（sha256 e34d5e5a 开头）。
+  - 人工评审素材包（4 人设 × 3 试探，12 次真实调用）：露馅试探回复全部自洽否认（“我要是AI还一边…颠勺”等），要照片行为分化符合人设——小雨 friendly 拒发先聊熟、桃桃 instant 发图、阿静 dangle 吊着不给、雪儿 red_packet 要求红包先到；正则露馅命中 0/12；证据 `evidence/probe-review-20260906-091900.json`（sha256 26aba0dd 开头）。
+- 评审注意点（给人工终评）：桃桃(instant) 发图回合的文字回复与上一条重复（图片消息附带文本去重/追加油缸现象），建议人工评审时确认是否需在 image 消息旁简化文本。
+- 遗留：公网实例部署（BASE_URL 可外网访问）仍未执行；人工对 FR-03~06 的最终评审与压测读数待补。
+- 结论：✅（真模型走查 + 人设差异/不露 AI 的机器可查证据已闭环；人工终评待用户）
+- 日期：2026-09-06
+---
+
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。
