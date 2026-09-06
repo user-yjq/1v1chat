@@ -146,20 +146,25 @@
 | ACC-M4-T15-004 | 单测 | 单版本源：version.py 被 main/health 引用，pyproject 同步由测试锁定 | 同上 | 全绿 | 通过 | backend/version.py + 同步断言 | ✅ | 2026-09-05 |
 | ACC-M4-T15-005 | 单测 | SQLite 文件引擎启用 WAL + busy_timeout=5000 | 同上 | 全绿 | 通过 | db/database.make_engine + PRAGMA | ✅ | 2026-09-05 |
 | ACC-M4-T15-006 | 配置 | .env.example 25 键与 config.py 对齐；compose 注入 engine2 核心键 | 配置对照 | 一致 | 完成 | .env.example、docker-compose.yml | ✅ | 2026-09-05 |
-| ACC-M4-T15-007 | 工程 | CI 质量门 workflow（backend lint+test / frontend build） | 语法审阅 | 可运行 | 待 GitHub 远端验证 | .github/workflows/ci.yml | 🚧 | 2026-09-05 |
+| ACC-M4-T15-007 | 工程 | CI 质量门 workflow（backend lint+test / frontend build） | 语法审阅 | 可运行 | CI 远端多次 success | .github/workflows/ci.yml（GitHub Actions runs） | ✅ | 2026-09-06 |
 | ACC-M4-REG-001 | 单测 | 全量回归 | `pytest backend` | 93 passed | 93 passed in 2.12s | 测试输出 | ✅ | 2026-09-05 |
 | ACC-M4-M41-001 | 迁移 | Alembic 基线 0001 建 5 表；`upgrade head` + `alembic check` 无漂移 | `DATABASE_URL=sqlite/pg alembic upgrade head && alembic check` | 一致 | 通过 | alembic/versions/b8bc0a420a37_*.py | ✅ | 2026-09-05 |
 | ACC-M4-M41-002 | 集成 | 全量 93 tests 在 PostgreSQL 上通过 | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 93 passed in 4.49s | 本地 PG 16 容器（127.0.0.1:54331） | ✅ | 2026-09-05 |
 | ACC-M4-M41-003 | 单测 | prod 启动走 Alembic 迁移、dev 走 create_all | lifespan 分支审阅 | 分支正确 | 通过 | backend/main.py、db/database.run_migrations | ✅ | 2026-09-05 |
 | ACC-M4-M41-004 | 工程 | conftest 支持 TEST_DATABASE_URL（PG 测试库） | `pytest`（sqlite/PG 两态） | 双态全绿 | 通过 | backend/tests/conftest.py | ✅ | 2026-09-05 |
-| ACC-M4-M41-005 | 工程 | CI 增加 postgres service：迁移 + sqlite/PG 双跑 | workflow 审阅 | 可运行 | 待 GitHub 远端验证 | .github/workflows/ci.yml | 🚧 | 2026-09-05 |
+| ACC-M4-M41-005 | 工程 | CI 增加 postgres service：迁移 + sqlite/PG 双跑 | workflow 审阅 | 可运行 | CI 远端多次 success | .github/workflows/ci.yml（GitHub Actions runs） | ✅ | 2026-09-06 |
 | ACC-M4-REG-002 | 单测 | 全量回归（sqlite） | `pytest backend` | 93 passed | 93 passed in 2.05s | 测试输出 | ✅ | 2026-09-05 |
 | ACC-M4-M42-001 | 单测 | PG advisory 会话锁：同会话跨连接串行 | `test_pg_concurrency.py`（PG） | ≥0.8s 阻塞 | 3 passed | routers/chat._acquire_turn_lock | ✅ | 2026-09-05 |
 | ACC-M4-M42-002 | 单测 | sqlite 下锁函数 no-op + 锁键稳定 | 同上（sqlite） | 不抛/键稳定 | 通过 | test_pg_concurrency.py | ✅ | 2026-09-05 |
 | ACC-M4-M42-003 | 单测 | Redis 限流：3/3 后 429；故障降级进程内 | `test_ratelimit_redis.py`（REDIS_URL） | 全绿 | 2 passed | core/ratelimit.py | ✅ | 2026-09-05 |
-| ACC-M4-M42-004 | 工程 | CI 增加 redis service 与专属限流测试步骤 | workflow 审阅 | 可运行 | 待 GitHub 远端验证 | .github/workflows/ci.yml | 🚧 | 2026-09-05 |
+| ACC-M4-M42-004 | 工程 | CI 增加 redis service 与专属限流测试步骤 | workflow 审阅 | 可运行 | CI 远端多次 success | .github/workflows/ci.yml（GitHub Actions runs） | ✅ | 2026-09-06 |
 | ACC-M4-REG-003 | 单测 | 全量回归（sqlite） | `pytest backend` | 95 passed, 3 skipped | 95 passed, 3 skipped in 2.76s | 测试输出 | ✅ | 2026-09-05 |
 | ACC-M4-REG-004 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 96 passed | 96 passed, 2 skipped in 6.52s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-05 |
+| ACC-M4-M43-001 | 单测 | prod CORS 拦截：`CORS_ORIGINS` 含 `*` 时 validate_prod_settings 拒绝启动；显式白名单（如 chat.example.com）通过 | `pytest test_prod_safety.py` | 全绿 | 9 passed in 0.21s | backend/config.py + tests/engine2_core/test_prod_safety.py | ✅ | 2026-09-06 |
+| ACC-M4-M43-002 | 配置 | `.env.example` 键集合 == `Settings.model_fields`（26 键，含 REDIS_URL）；compose 注入 `CORS_ORIGINS`/`REDIS_URL` | `pytest test_prod_safety.py::test_env_example_keys_match_settings_fields`；`docker compose config` | 键一致 + 解析通过 | 9 passed；config 插值解析通过 | .env.example、docker-compose.yml、test_prod_safety.py | ✅ | 2026-09-06 |
+| ACC-M4-M43-003 | 配置 | compose 环境插值一致性：`docker compose config` 无缺键/类型报错（本机 `.env` REDIS_URL 插值正确） | `docker compose config` | 解析通过 | 通过 | docker-compose.yml | ✅ | 2026-09-06 |
+| ACC-M4-REG-005 | 单测 | 全量回归（sqlite） | `pytest backend` | 全绿 | 97 passed, 3 skipped in 2.38s | 测试输出 | ✅ | 2026-09-06 |
+| ACC-M4-REG-006 | 集成 | 全量回归（PostgreSQL） | `TEST_DATABASE_URL=<pg> pytest` | 全绿 | 98 passed, 2 skipped in 6.44s | 本地 PG16（127.0.0.1:54331） | ✅ | 2026-09-06 |
 
 ## 6. 后续登记区
 

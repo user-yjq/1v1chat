@@ -89,4 +89,7 @@ def validate_prod_settings(cfg: Settings | None = None) -> list[str]:
             problems.append("DEEPSEEK_API_KEY 缺失或为占位值，prod 必须显式设置真实 key（或显式 LLM_MODE=mock）")
     if bool(c.APP_DEBUG):
         problems.append("APP_DEBUG=True 不应在生产开启")
+    origins = list(c.CORS_ORIGINS or [])
+    if "*" in origins:
+        problems.append("CORS_ORIGINS 含通配符 '*'，prod 必须显式白名单")
     return problems

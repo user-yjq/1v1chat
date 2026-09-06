@@ -38,8 +38,27 @@ def test_prod_mock_llm_does_not_require_key():
 
 def test_prod_clean_config_passes():
     s = Settings(_env_file=None, APP_ENV="prod", JWT_SECRET="x" * 48,
-                 DEEPSEEK_API_KEY="sk-prod-1234567890", APP_DEBUG=False, LLM_MODE="auto")
+                 DEEPSEEK_API_KEY="sk-prod-1234567890", APP_DEBUG=False, LLM_MODE="auto",
+                 CORS_ORIGINS=["https://chat.example.com"])
     assert validate_prod_settings(s) == []
+
+
+def test_prod_cors_wildcard_flagged():
+    s = Settings(_env_file=None, APP_ENV="prod", JWT_SECRET="x" * 48,
+                 DEEPSEEK_API_KEY="sk-prod-1234567890", APP_DEBUG=False, LLM_MODE="auto",
+                 CORS_ORIGINS=["*"])
+    assert any("CORS_ORIGINS" in p for p in validate_prod_settings(s))
+
+
+def test_env_example_keys_match_settings_fields():
+    """R-E3：.env.example 键集合必须与 config.Settings 字段全量一致（防漂移）。"""
+    with open(_REPO_ROOT / ".env.example", encoding="utf-8") as f:
+        example_keys = {line.split("=", 1)[0] for line in f
+                        if line.strip() and not line.lstrip().startswith("#") and "=" in line}
+    settings_fields = set(Settings.model_fields)
+    assert example_keys == settings_fields, (
+        f"缺失={sorted(settings_fields - example_keys)} 多余={sorted(example_keys - settings_fields)}"
+    )
 
 
 # --- 单版本源（R-E2） ------------------------------------------------------ #

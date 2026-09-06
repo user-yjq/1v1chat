@@ -24,6 +24,8 @@ services:
       - GUARD_SAMPLE_RATE=${GUARD_SAMPLE_RATE:-0.05}
       - MSG_MAX_LEN=${MSG_MAX_LEN:-2000}
       - CHAT_RATE_PER_MIN=${CHAT_RATE_PER_MIN:-30}
+      - CORS_ORIGINS=${CORS_ORIGINS:-["http://localhost:3000","http://127.0.0.1:3000"]}
+      - REDIS_URL=${REDIS_URL:-}
     volumes:
       - ./data:/app/backend/data
     restart: unless-stopped

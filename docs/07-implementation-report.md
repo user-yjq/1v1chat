@@ -175,6 +175,22 @@
 - 遗留：多 worker 端到端压测（双 uvicorn worker 并发同会话）需在可联网/编排环境跑；R-B6 备份恢复演练未做。
 - 结论：✅（sqlite 全量 + PG 并发 + Redis 限流本地全绿；ruff 0）
 - 日期：2026-09-05
+
+### RPT-M4-005：M4.3 配置/发布一致性收尾（T-15，2026-09-06）
+
+- 范围：R-C4（CORS 按环境注入与生产校验）与配置/发布一致性收尾（R-E1 远端验证、.env/compose 键源同步）。
+- 对照：08 §3 M4.3；依赖 M4.1/M4.2 前置。
+- 完成项：ACC-M4-M43-001~003、ACC-M4-REG-005/006；回填 ACC-M4-T15-007、ACC-M4-M41-005、ACC-M4-M42-004 为 ✅（CI 远端多次 success）。
+- 变更与偏差：
+  - `backend/config.py`：`validate_prod_settings` 新增校验——`APP_ENV=prod` 且 `CORS_ORIGINS` 含 `"*"` 时拒绝启动（fail-fast，与 R-C1 同策略）。
+  - `.env.example`：补 `REDIS_URL=`，键集合现与 `Settings.model_fields` 完全一致（26 键），并由单测锁定。
+  - `docker-compose.yml`：为 backend 服务注入 `CORS_ORIGINS`、`REDIS_URL`；`docker compose config` 插值解析通过。
+  - `backend/tests/engine2_core/test_prod_safety.py`：新增 prod CORS 通/拦用例、env 键==model_fields 一致性用例（显式 `CORS_ORIGINS` 白名单，避免本机 `.env` 干扰）。
+  - 回填 08：R-C4 ⏸→✅、R-E1 🚧→✅（CI 已多次 success）、NFR-PROD-3 与 M4.4 范围同步去“待验证”。
+- 风险触发：无。
+- 遗留：R-B6 备份/恢复演练仍 ⏸；M4.4（Docker 加固非 root/readiness、Makefile 修正）与 M4.5+（观测/审计/合规）待排期。
+- 结论：✅（sqlite 97 passed 3 skipped / PG 98 passed 2 skipped / test_prod_safety 9 passed / ruff 0）
+- 日期：2026-09-06
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。
