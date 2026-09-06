@@ -26,11 +26,11 @@
 | v0.3.0 | engine2 重构 + 双引擎路由与安全加固 | 🚧 M1/M2 完成（T-02~T-13），69 tests 绿 + HTTP E2E 7/7；待 v0.4 真模型调优 |
 | v0.4.0 | 评测与真人感调优（试探集 + 对抗评测） | 🚧 离线完成 + 对抗评测工具就绪（16 剧本，mock 冒烟 0 硬失败）；待真模型走查/人工评审 |
 | v0.5.0 | 生产化候选（队列/网关/观测/Alembic/安全加固） | ✅ M4.1~M4.9 + R-B6 已落地（PG+Alembic、advisory 锁、Redis 限流、prod CORS 拦截、env 键一致、Docker 非 root/readiness、Makefile 单依赖入口、PG 备份/恢复演练、request-id/指标/JSON 日志/readiness 探测、登录防爆破/refresh 轮换撤销/管理审计/admin 引导、合规 flags/披露横幅/协议隐私/导出删除、state 读时迁移/消息联合索引+游标分页、默认 v2+一键回滚演练、部署手册 docs/09，sqlite 143/PG 144 绿）；CI run 34015836181 success + tag v0.5.0 已发布） |
-| v0.6.0 | 上线前收尾（数据权/遗留清理） | 🚧 M5.1 已落地（`GET/DELETE /api/me/data` 账号级导出/删除，sqlite 148/PG 149 绿）；其余遗留见 09 §7 |
+| v0.6.0 | 上线前收尾（数据权/遗留清理） | 🚧 M5.1 ✅（账号级导出/删除）、M5.2 ✅（v1 引擎归档 `_legacy/engine_v1/` + 转发层保回滚，sqlite 148/PG 149 绿）；剩余遗留见 09 §7 |
 
 ## 核心约定（所有文档共同遵守）
 
-- 引擎代号 `engine2`，与旧 `backend/engine/` 并行，靠配置 `ENGINE_VERSION` 切换（v1=旧 / v2=新），可随时回滚。
+- 引擎代号 `engine2`；v1 引擎已归档 `backend/_legacy/engine_v1/`（M5.2），经 `services/chat_engine` 转发层按 `ENGINE_VERSION` 切换（v1=旧 / v2=新），可随时回滚。
 - 代码边界：`engine2` 只依赖 `models/`、`db/`、`config` 与 LLM provider 抽象，**不反向依赖路由与旧 engine**。
 - LLM 边界：每轮最多 2 次调用（Analyzer 理解 + Actor 说话）；发不发照片、到没到阶段等**决策不进 LLM**。
 - 文档契约：文档先于代码；实现与文档冲突时，先改文档与台账记录，再动代码。

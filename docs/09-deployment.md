@@ -56,7 +56,7 @@ v0.5.0 默认 v2（engine2）。需要回退旧引擎时：
 1. 快照数据：PG 用 `scripts/backup_pg.sh`；SQLite 直接拷贝 `data/*.db`（含 `-wal`/`-shm`）。
 2. 把 `ENGINE_VERSION` 设为 `v1`（`.env` 或容器环境）并重启 backend。
 3. 走查一轮：`scripts/drill_engine_rollback.py`（内存 FakeLLM，双引擎同输入对照）PASS；
-   v1 回滚点仍能正常出消息与落库（v1 引擎保留原位，暂不迁移 `_legacy/`）。
+   v1 回滚点仍能正常出消息与落库（v1 实现已归档 `_legacy/engine_v1/`，经 `services/chat_engine` 转发层加载，见 docs/03 §12）。
 
 ## 6. 发布 checklist（对应 08 M4.9 退出标准）
 
@@ -71,4 +71,3 @@ v0.5.0 默认 v2（engine2）。需要回退旧引擎时：
 
 - 真实 HTTP 环境万级消息 p95 压测与看板（Prometheus+Grafana）
 - 注册人机校验升级（验证码/设备指纹）；Terms/Privacy 文案法务审读
-- v1 引擎迁移 `_legacy/` 清理（v0.5.0 后）

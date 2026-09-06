@@ -237,7 +237,8 @@ backend/llm/provider.py            # 增加 extract_json 能力（不破坏现�
 backend/llm/prompts/persona_actor_v2.txt
 backend/tests/engine2_core/        # 新测试（按节点分文件；命名避免遮蔽 engine2 包）
 backend/routers/chat.py            # 按 ENGINE_VERSION 选择服务（v0.3 末期）
-backend/engine/ + chat_engine.py   # 冻结不动；切 v2 稳定后归档 backend/_legacy/engine_v1/
+backend/_legacy/engine_v1/        # v1 引擎归档区（M5.2：events/photo/prompting/state/chat_engine）
+backend/services/chat_engine.py  # v1 转发层（模块别名→_legacy.engine_v1.chat_engine，保回滚/parity）
 ```
 
 ### 12.2 settings 新增字段（文档先行，T-03 实现）

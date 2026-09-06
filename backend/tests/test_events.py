@@ -1,4 +1,4 @@
-from engine.events import detect_events, primary_event
+from _legacy.engine_v1.events import detect_events, primary_event
 
 
 def test_request_photo():

@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from engine.state import advance_stage, current_stage, default_state, stage_block_text
+from _legacy.engine_v1.state import advance_stage, current_stage, default_state, stage_block_text
 
 
 def scenario(stages):

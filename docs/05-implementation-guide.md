@@ -59,7 +59,7 @@
 边界红线：
 
 - `engine2/*` 不 import `engine/*`、`routers/*`、`services/chat_engine.py`。
-- 旧 `engine/*` 与 `chat_engine.py` **冻结**：v1 切换前不改；切 v2 稳定后整体归档 `_legacy/engine_v1/`。
+- 旧 `engine/*` 与 `chat_engine.py` 已整体归档 `_legacy/engine_v1/`（M5.2）；`services/chat_engine.py` 仅为转发层（模块别名），改 v1 只能在 `_legacy/engine_v1/` 内。
 - LLM 调用只经 `llm/provider.py` 抽象；节点不得直接 httpx。
 
 ## 6. 分步执行清单（对应 04 WBS）

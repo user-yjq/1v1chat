@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from engine.photo import decide_photo
+from _legacy.engine_v1.photo import decide_photo
 
 ASSETS = ["/media/1.png", "/media/2.png", "/media/3.png"]
 
