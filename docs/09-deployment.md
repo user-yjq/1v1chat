@@ -38,7 +38,7 @@ open http://127.0.0.1:3000      # 前端（/api 已反代）
 |----|----|------|
 | 运行模式 | `APP_ENV=prod` | 触发 prod fail-fast：占位 `JWT_SECRET`/空 key/`APP_DEBUG=true` 直接拒绝启动 |
 | JWT 密钥 | `JWT_SECRET` | 强随机 ≥32 字符；泄漏=可伪造会话 |
-| LLM Key | `DEEPSEEK_API_KEY`（可空） | 空时需 `LLM_MODE=mock`，否则 prod 启动失败 |
+| LLM Key | `DEEPSEEK_API_KEY`（可空） | 空时需 `LLM_MODE=mock`，否则 prod 启动失败。**compose 部署读根 `.env` 的值注入容器**；`backend/.env` 仅供本地裸跑、被 `.dockerignore` 排除不会进镜像，勿依赖它给容器供 key（否则 auto 模式会静默回退 MockLLM，出现“固定假回复”） |
 | CORS | `CORS_ORIGINS` | 显式白名单（如 `["https://chat.example.com"]`），禁止含 `*` |
 | 管理员 | `ADMIN_BOOTSTRAP_USERNAME/PASSWORD` | 首次空表启动自动建 admin；初始化后请清空这两个环境变量 |
 | 引擎 | `ENGINE_VERSION` | **v0.5.0 默认 `v2`**（engine2）；回滚设 `v1`（见 §5） |

@@ -450,6 +450,17 @@
 - 日期：2026-09-07
 ---
 
+### RPT-M5-011：compose 误用占位 key 致引擎回退 MockLLM（2026-09-07）
+
+- 现象：用户在真模型页面连发两条消息收到**逐字相同的固定句**（“嗯嗯，我懂你说的～那你呢…”），怀疑系统不按输入生成。
+- 定位：该句来自 `MockLLM._lines`（backend/llm/provider.py）；容器 `DEEPSEEK_API_KEY` 长度为 20（根 `.env` 占位值）。此前带真实 key 的 shell 覆盖部署过 backend，之后多次 `docker compose up`（重建前端）时未再带 key 覆盖，compose 按根 `.env` 重建 backend → auto 模式回退 MockLLM。`agent_trace.llm_calls=2` 且全节点毫秒级，坐实离线假回复。
+- 处置：把真实 key（`backend/.env`，35 位，`GET /models` 200）固化进根 `.env`，重建 backend；readiness 恢复 `mode=auto / DEEPSEEK_API_KEY 已配置 / deepseek-chat`。
+- 验证：真模型连发“刚下班累死了，你呢”“躺”两条，回复分别为“刚给客户改完图，眼睛都快瞎了🥲…”“就一个字啊？…”，内容差异化且贴人设（自由设计师）。
+- 防复发：docs/09 §3 已注明 compose 读根 `.env` 供 key、`backend/.env` 不进镜像；真实 key 需放根 `.env`。
+- 结论：✅（回真模型；非代码缺陷，为部署配置一致性）
+- 日期：2026-09-07
+---
+
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。
