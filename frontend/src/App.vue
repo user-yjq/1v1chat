@@ -111,18 +111,13 @@ const logout = () => {
 }
 
 onMounted(async () => {
-  // 登录/注册/协议/隐私为独立整页：未登录也允许直接打开（深链不弹回登录）
-  if (route.name === 'login' || route.name === 'register' ||
-      route.name === 'terms' || route.name === 'privacy') {
-    return
+  // 未登录跳转由路由守卫统一负责；这里等初始导航完成（深链 /register 直接打开时
+  // route 尚在 START_LOCATION），避免重复跳转把独立整页弹回登录
+  await router.isReady()
+  if (userStore.token && isShellPage.value) {
+    await loadConversations()
   }
-  if (!userStore.token) {
-    router.replace('/login')
-    return
-  }
-  await loadConversations()
 })
-
 // 登录跳转/新建会话/切换会话后都要刷新左侧列表，避免“对话突然没了”
 watch(
   () => route.fullPath,
