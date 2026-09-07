@@ -83,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useConversationStore } from '@/stores/conversation'
 import DisclosureBar from '@/components/DisclosureBar.vue'
@@ -100,7 +100,8 @@ const aiTyping = ref(false)
 const previewUrl = ref('')
 const msgListRef = ref<HTMLElement>()
 
-const convId = Number(props.id) || Number(route.params.id)
+// 路由参数变化时组件会被复用，必须用 computed + watch 才能切换会话
+const convId = computed(() => Number(props.id) || Number(route.params.id))
 
 const personaDesc = computed(() => {
   const p = conversation.value?.persona
@@ -125,14 +126,14 @@ function scrollToBottom() {
 
 async function loadConversation() {
   try {
-    conversation.value = await convStore.getConversation(convId)
+    conversation.value = await convStore.getConversation(convId.value)
     document.title = `${conversation.value.persona?.name || '对话'} · 1v1Chat`
   } catch (e) { /* ignore */ }
 }
 
 async function loadMessages() {
   try {
-    messages.value = await convStore.getMessages(convId)
+    messages.value = await convStore.getMessages(convId.value)
     scrollToBottom()
   } catch (e) { /* ignore */ }
 }
@@ -145,7 +146,7 @@ async function sendMessage() {
   aiTyping.value = true
   scrollToBottom()
   try {
-    const result = await convStore.sendMessage(convId, text)
+    const result = await convStore.sendMessage(convId.value, text)
     messages.value.push(result.user_message)
     scrollToBottom()
     await new Promise(r => setTimeout(r, 400))  // 更真实的“正在输入”感
@@ -163,6 +164,14 @@ async function sendMessage() {
 }
 
 onMounted(async () => {
+  await loadConversation()
+  await loadMessages()
+})
+
+// 侧边栏切换会话：重置内容并加载新会话（否则页面一直停在第一个会话）
+watch(convId, async () => {
+  messages.value = []
+  conversation.value = null
   await loadConversation()
   await loadMessages()
 })
