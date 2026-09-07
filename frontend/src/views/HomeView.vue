@@ -8,7 +8,11 @@
 
       <div v-if="loading" class="text-center text-gray-400 py-16">加载人设中...</div>
 
-      <div v-else-if="error" class="text-center text-red-400 py-16">{{ error }}</div>
+      <div v-else-if="error" class="text-center text-red-500 py-16 px-4 break-all">{{ error }}</div>
+
+      <div v-else-if="personas.length === 0" class="text-center text-gray-400 py-16">
+        还没有可用的人设，请先执行 `python seed.py`
+      </div>
 
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div v-for="p in personas" :key="p.id"
@@ -28,7 +32,6 @@
           </div>
         </div>
       </div>
-      <p v-if="!loading && personas.length === 0" class="text-center text-gray-400 py-10">还没有可用的人设，请先执行 `python seed.py`</p>
     </div>
   </div>
 </template>
@@ -64,7 +67,11 @@ onMounted(async () => {
   try {
     personas.value = await convStore.fetchPersonas()
   } catch (e) {
-    error.value = '人设加载失败，请刷新重试；若持续失败请联系管理员'
+    const err: any = e
+    const msg = err?.response
+      ? `HTTP ${err.response.status}：${JSON.stringify(err.response.data || '')}`
+      : (err?.message ?? String(err))
+    error.value = `人设加载失败：${msg}`
   } finally {
     loading.value = false
   }

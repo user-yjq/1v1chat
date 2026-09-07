@@ -261,6 +261,7 @@
 | ACC-M5-M54-013 | 走查 | 人工评审素材包：4 人设 × 3 试探（2 露馅试探 + 要照片）真模型回复，验证人设一致性/照片策略差异化/不露 AI | `python /tmp/probe_review.py`（临时驱动器，复用 walkthrough_live Client） | liveness 0 | 小雨拒发“先聊熟”、桃桃发图、阿静“不给”、雪儿“红包一发光就发”；露馅命中 0/12 | evidence/probe-review-20260906-091900.json（sha256 26aba0dd 开头） | ✅ 材料就绪（待人工终评 FR-03~06） | 2026-09-06 |
 | ACC-M5-M54-014 | 工程 | 防陈旧缓存与错误态修复：`/api/*` 响应加 `Cache-Control: no-store`（人设列表曾被缓存成空/旧数据）；HomeView 区分“加载失败”与“空人设”，不再误导去 seed | 新增 tests/engine2_core/test_api_no_store.py（2 用例）+ ruff + sqlite 全量 + 镜像构建 | 全绿 | no_store+observability 10 passed；sqlite 150 passed 3 skipped；ruff 0；经 3000 实测 personas=4 且响应带 cache-control: no-store | backend/core/middleware.py、backend/main.py、frontend/src/views/HomeView.vue | ✅ | 2026-09-06 |
 | ACC-M5-M54-015 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 + redis 限流 + docker 冒烟 + 前端 build（含新中间件与测试） | GitHub Actions push（run 34025601570） | 全绿 | success（1m1s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
+| ACC-M5-M54-016 | 工程 | 前端 axios/Pinia 修复：axios 实例提升为模块级 `http`，store 返回 `api` 普通对象包装，解决“Pinia 把可调用函数当 action 包装→`api.get is not a function`→/api 全部不发请求”问题；HomeView 改为单状态渲染并展示底层错误详情 | vue-tsc/vite build（docker 镜像）+ 公网浏览器验证 | 构建通过 + 人设/会话可见 | docker build frontend OK；用户公网强刷 demo 登录确认“正常了”（人设 4/会话 4 可见） | frontend/src/stores/user.ts、frontend/src/views/HomeView.vue | ✅ | 2026-09-07 |
 
 ## 6. 后续登记区
 

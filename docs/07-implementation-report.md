@@ -440,6 +440,16 @@
 - 日期：2026-09-06
 ---
 
+### RPT-M5-010：前端 axios/Pinia 修复——`api.get is not a function`（2026-09-07）
+
+- 现象：用户公网浏览器登录后首页“人设加载失败”，Network 无任何 `/api/personas|conversations` 请求；页面报错 `api.get is not a function`。
+- 根因：Pinia setup store 会把 store 返回的**函数**自动包装成 action；axios 实例本身是“可调用函数对象”，经 `userStore.api` 暴露后被包装，`.get/.post/.put/.delete` 全部丢失。登录/注册能成功是因为它们走 store 内部闭包的 axios，未经过 Pinia 包装；人设/会话/导出等所有 `userStore.api.*` 调用点均在浏览器侧抛错（未发请求，日志因此“无请求”）。
+- 修复：`frontend/src/stores/user.ts` 重写——axios 实例提升为模块级 `http`（token 从 localStorage 实时读取；401 统一清会话回 /login），store 返回普通对象 `api` 包装器（`Parameters<typeof http.x>` 元组透传），15 处调用点零改动。HomeView 同步改为单状态渲染（加载中/错误/空/列表）并把底层错误展示在页面。
+- 验证：docker 构建（vue-tsc+vite）通过；公网浏览器 `demo/Demo#2026` 登录后用户确认人设与对话正常可见。
+- 结论：✅（根因修复 + 公网真机验证；该缺陷属部署后真实浏览器首访才暴露）
+- 日期：2026-09-07
+---
+
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。
