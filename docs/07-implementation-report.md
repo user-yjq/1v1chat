@@ -534,4 +534,14 @@
 - 日期：2026-09-07
 ---
 
+### RPT-M5-019：E2E 门禁首战——捕获并根治“独立整页深链被弹回登录”（2026-09-07）
+
+- 现象：Playwright 冒烟 `page.goto('/register')` 连续两轮失败——页面最终落在 `/login`（body 断言输出登录页内容）。此前人工测试流程总是“先打开 /login 再点去注册”，从未直接深链 /register，因此该缺陷一直未暴露。
+- 根因：`main.ts` 直接 `app.mount`，未等待 `router.isReady()`；Vue Router 初始导航解析深链是异步的，App.vue `onMounted` 执行时 `route` 仍停在 START_LOCATION。旧逻辑 `if (!userStore.token) router.replace('/login')` 于是把 /register、/terms、/privacy 等独立整页一律弹回登录。第一版修复（按 `route.name` 白名单提前 return）无效，因为挂载时刻 name 尚未解析；根治版改为 `await router.isReady()` 后再处理，并删除 App 层重复的登录跳转（该职责已由路由守卫承担）。
+- 过程：三轮 CI 逐步收敛——首轮超时（无诊断）→ 第二轮加 URL/body/console 诊断定位到“深链→/login”→ 第三轮根因修复后四 job 全绿（run 34085706354）。
+- 价值：这正是引入前端 E2E 门禁的意义——把“只有真实浏览器+直连 URL 才暴露”的路由生命周期类缺陷收进自动回归，避免重蹈 axios/Pinia、ChatView 复用等“靠人工点出来”的覆辙。
+- 结论：✅（修复 + E2E 持续守护）
+- 日期：2026-09-07
+---
+
 > 自 M1 起，每个 Step 完成后按模板追加。
