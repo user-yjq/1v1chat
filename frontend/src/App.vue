@@ -111,8 +111,13 @@ const logout = () => {
 }
 
 onMounted(async () => {
+  // 登录/注册/协议/隐私为独立整页：未登录也允许直接打开（深链不弹回登录）
+  if (route.name === 'login' || route.name === 'register' ||
+      route.name === 'terms' || route.name === 'privacy') {
+    return
+  }
   if (!userStore.token) {
-    router.push('/login')
+    router.replace('/login')
     return
   }
   await loadConversations()
