@@ -461,6 +461,32 @@
 - 日期：2026-09-07
 ---
 
+### RPT-M5-012：聊天壳/会话列表交互修复——登录页隐藏壳、路由变化刷新列表、选人设续接最近会话（2026-09-07）
+
+- 现象：登录/注册等非聊天页仍显示左侧“新对话+历史会话”聊天壳；路由跳转或点击“新对话”后左侧历史列表不刷新（表现为对话“丢失”或停留旧数据）；首页点任一“开始聊天”总是新建会话，历史越积越多、每次都要重新聊。
+- 根因：侧边栏无条件渲染；会话列表仅在 App 挂载时拉取一次、路由变化不重载；HomeView `startWith` 无条件 `createConversation`。
+- 变更：`frontend/src/App.vue` 新增 `isShellPage`（login/register/terms/privacy 为独立整页，侧边栏 `v-if` 隐藏），`watch(route.fullPath)` 在登录态且壳页时刷新会话列表；`frontend/src/views/HomeView.vue` 选人设时先查该人设最近会话，存在则续接、否则新建。
+- 验证：docker 镜像 vue-tsc/vite build 通过；`isShellPage` 白名单、watch 刷新、续接排序逻辑代码审阅通过；与 RPT-M5-013 同批交由用户在公网实例回归（commit 5f39594）。
+- 结论：✅（修复“登录页带聊天壳/对话列表不刷新/重复新建会话”）
+- 日期：2026-09-07
+---
+
+### RPT-M5-013：ChatView 路由参数变化不切换会话——点任何历史对话都停在小雨（2026-09-07）
+
+- 现象：用户点击左侧任意历史对话，聊天页始终停在小雨（会话与消息不切换）。根因：Vue Router 在 `/chat/:id` 仅参数变化时**复用同一组件实例**，`onMounted` 不会重跑，会话 ID 仍取旧值。
+- 变更：`frontend/src/views/ChatView.vue` 将 `convId` 由普通常量改为 `computed`，新增 `watch(convId)`：先清空 `messages/conversation`，再重载会话详情与消息并滚动到底；发送与加载路径统一改用 `convId.value`。
+- 验证：docker 镜像 vue-tsc/vite build 通过；watch 重置+重载路径代码审阅通过；公网实例由用户强刷后回归（commit 8a75ea8）。
+- 结论：✅（历史会话可正确切换，不再“固定小雨”）
+- 日期：2026-09-07
+---
+
+### RPT-M5-014：小雨/阿静头像素材反标修正（2026-09-07）
+
+- 现象：用户反馈“阿静和小雨的反过来”，并明确“照片/头像换一下”——`backend/media/avatar/` 中 `xiaoyu.jpg` 与 `ajing.jpg` 的文件内容与文件名语义错位，致两名人设在界面显示的头像彼此对调。
+- 变更：对换两文件内容（`xiaoyu.jpg` ↔ `ajing.jpg`），仓库源（commit 0133917）与 compose `app-media` 卷同步；`backend/seed.py` 人设→avatar_url 映射本身正确（小雨→xiaoyu.jpg、阿静→ajing.jpg），无需改库。
+- 验证：仓库 sha `xiaoyu=45e914587429…`、`ajing=c37d0ce8bf05…`；`curl 127.0.0.1:8000/media/avatar/{xiaoyu,ajing}.jpg` 返回字节与仓库 MATCH（容器卷已同步）；readiness ok（db 真 / llm auto→deepseek-chat）。CI：同提交 push run 34077078114 success(1m15s)，watch run 34077236783 exit 0。
+- 结论：✅（代码与运行时一致；最终目检需用户浏览器 Ctrl+F5 强刷确认小雨/阿静头像互换到位）
+- 日期：2026-09-07
 ---
 
 > 自 M1 起，每个 Step 完成后按模板追加。

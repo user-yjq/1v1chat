@@ -263,6 +263,10 @@
 | ACC-M5-M54-015 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 + redis 限流 + docker 冒烟 + 前端 build（含新中间件与测试） | GitHub Actions push（run 34025601570） | 全绿 | success（1m1s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 | ACC-M5-M54-016 | 工程 | 前端 axios/Pinia 修复：axios 实例提升为模块级 `http`，store 返回 `api` 普通对象包装，解决“Pinia 把可调用函数当 action 包装→`api.get is not a function`→/api 全部不发请求”问题；HomeView 改为单状态渲染并展示底层错误详情 | vue-tsc/vite build（docker 镜像）+ 公网浏览器验证 | 构建通过 + 人设/会话可见 | docker build frontend OK；用户公网强刷 demo 登录确认“正常了”（人设 4/会话 4 可见） | frontend/src/stores/user.ts、frontend/src/views/HomeView.vue | ✅ | 2026-09-07 |
 | ACC-M5-M54-017 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 + redis 限流 + docker 冒烟 + 前端 build（含 axios 修复与 docs/11） | GitHub Actions push（run 34073342162） | 全绿 | success（1m22s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-07 |
+| ACC-M5-M54-018 | E2E | 前端会话/布局修复：登录/注册/协议/隐私页为独立整页不带聊天壳（侧边栏按路由 v-if 隐藏）；路由变化（登录跳转/新建/切换会话）自动刷新左侧会话列表；首页选人设优先续接该人设最近会话，避免每次“开始聊天”都新建空会话 | vue-tsc/vite build（docker 镜像）+ 代码审阅 | 构建通过 + 逻辑符合预期 | docker build frontend OK；isShellPage 白名单、watch(route.fullPath)、HomeView 续接逻辑审阅通过 | frontend/src/App.vue、frontend/src/views/HomeView.vue | ✅ | 2026-09-07 |
+| ACC-M5-M54-019 | E2E | ChatView 会话切换修复：路由参数变化时组件复用不重载（点任何历史对话都停在小雨）→ convId 改 computed + watch(convId) 清空消息并重新加载会话/标题/滚动，发送与加载统一用 convId.value | vue-tsc/vite build（docker 镜像）+ 代码审阅 | 构建通过 + 参数变化触发重载 | docker build frontend OK；watch 重置+重载路径审阅通过 | frontend/src/views/ChatView.vue | ✅ | 2026-09-07 |
+| ACC-M5-M54-020 | E2E | 小雨/阿静头像素材反标修正：xiaoyu.jpg 与 ajing.jpg 文件内容对换（仓库源 + compose app-media 卷同步），HTTP 实际返回字节与仓库一致 | sha256sum 仓库文件 ↔ curl http://127.0.0.1:8000/media/avatar/{xiaoyu,ajing}.jpg | sha 一致 | xiaoyu=45e91458…、ajing=c37d0ce8…，HTTP 与仓库 MATCH | backend/media/avatar/*.jpg、docker-compose.yml（app-media 卷） | ✅ 待用户强刷目检 | 2026-09-07 |
+| ACC-M5-M54-021 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 + redis 限流 + docker 冒烟 + 前端 build（含上述前端修复与头像对换提交 0133917） | GitHub Actions push（run 34077078114；watch 34077236783） | 全绿 | success（1m15s，四 job 完成；watched run exit 0） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-07 |
 
 ## 6. 后续登记区
 
