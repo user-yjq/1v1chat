@@ -75,3 +75,7 @@ Thumbs.db
 
 # Docker
 .docker-data/
+
+# 本地验收证据/报告不入库（台账引用路径+sha256）
+evidence/
+*-report-*.json

@@ -489,4 +489,49 @@
 - 日期：2026-09-07
 ---
 
+### RPT-M5-015：R-A2 LLM 熔断与预算护栏（2026-09-07）
+
+- 起因：08 检查清单 R-A2（P1）——上游（DeepSeek）持续故障时，当前只靠 tenacity 3 次退避，每轮都可能干等超时才走兜底；无任何快速失败护栏。
+- 变更：
+  - `backend/llm/provider.py`：新增熔断状态机（closed/open/half_open）——closed 累计连续失败达 `LLM_CIRCUIT_FAIL_THRESHOLD`（默认 3）→ open；open 冷却 `LLM_CIRCUIT_COOLDOWN_S`（默认 30s）内直接抛 `LLMCircuitOpenError`（不发起网络）；冷却后放行探活，成功→closed、失败→重新 open；半开/探活均打点。
+  - 并发预算 `_LlmBudget`：`LLM_MAX_CONCURRENCY`（默认 8）进程内计数，检查与自增无 await、原子；超出立即抛 `LLMBudgetExceededError`（不排队）。实现初版用 `asyncio.Semaphore`+`wait_for(timeout=0)` 存在“永远拿不到”的缺陷（wait_for 在调度前取消），已改为计数实现并在单测中覆盖。
+  - `core/metrics.py`：新增 `chat_llm_circuit_total{kind=opened/closed/rejected}`。
+  - 语义：`RemoteLLM.generate/extract_json` 统一走“预检→预算→计时调用→回报状态机”；MockLLM 不受影响（测试/离线始终可用）。引擎 `actor` 已吞 LLM 异常走降级话术，故熔断/预算异常不会 500、不会露 AI。
+- 验证：新增 `test_llm_circuit.py` 6 用例（熔断开/拒绝不打网络/半开成功关闭/半开失败重开/预算拒绝与恢复/extract 熔断返回 None/mock 不受扰）+ `test_pipeline` 熔断降级用例；ruff 0；sqlite 全量 157 passed 3 skipped；`.env.example` 补齐三键通过 prod 安全一致性测试。
+- 结论：✅（R-A2 主体闭环；遗留：错误率口径为“连续失败计数”，若要严格窗口滑动错误率可后续演进）
+- 日期：2026-09-07
+---
+
+### RPT-M5-016：HTTP 压测脚本与 P95 读数（2026-09-07）
+
+- 变更：新增 `scripts/load_test_http.py`（纯标准库，复用 walkthrough 的 Client 风格）：前置 readiness → S1 单轮链路延迟（顺次连发 N 条）→ S2 聊天限流 429 → S3 游标分页全量翻页；每步打印 p95/avg，`--archive-dir` 归档 JSON+sha256（与走查证据同规范）。
+- 读数（mock 引擎实例，本地 18000，SQLite WAL）：
+  - S1：12 条连发全 200，p95=21.4ms、avg=19.5ms（链路含引擎/DB/HTTP，不含上游）；
+  - S2：burst 60 中 200=30、429=1、5xx=0（`CHAT_RATE_PER_MIN=30` 阈值精确生效），p95=24.1ms；
+  - S3：20 轮 41 条消息、3 页翻完无重复缺口，首页 p95=8.8ms、全页 p95=9.2ms。
+  - 证据：`evidence/load-20260907-114723.json`（sha256 de30d008 开头，不入库，台账引用）。
+- 边界：本脚本在 SQLite 目标上不做“同会话真并发写”断言（见 RPT-M5-017）。
+- 结论：✅（可复跑，命令见文件头 docstring）
+- 日期：2026-09-07
+---
+
+### RPT-M5-017：同会话真并发写的数据层边界实验（2026-09-07）
+
+- 实验：对 mock SQLite 实例用 2 客户端 × 12 条并发打同一会话，结果 20×200 + 4×500；服务端日志 `sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) database is locked`。虽然文件库已开 WAL + busy_timeout=5000，真并发写仍会超时失败。
+- 结论：SQLite 单写者是 demo 数据层的**已知边界**（与 01 NFR-PERF-3 只承诺 PG 一致）；多 worker/高并发的正确性由 PG + advisory xact lock（R-A1，`chat.py _acquire_turn_lock`，仅 PG 生效）+ engine2 会话内 asyncio 锁承担，CI 的 `test_pg_concurrency` 持续绿。压测脚本对 SQLite 目标只跑串行链路/限流/分页，避免给出误导性“并发通过”。
+- 启示（写进 08）：demo 单机单用户无感；若上线切 PG 后按 docs/10 §4.3 场景 2 重跑即可升级证据。
+- 日期：2026-09-07
+---
+
+### RPT-M5-018：前端 Playwright E2E 冒烟与 CI 接入（2026-09-07）
+
+- 变更：
+  - `frontend/playwright.config.ts` + `frontend/e2e/smoke.spec.ts`：注册→首页出现 4 人设卡片→点“小雨”进 `/chat/:id`→发消息后等待用户+AI 两个气泡出现（mock 秒回）。
+  - `frontend/package.json`：devDep `@playwright/test@1.49.1` + script `test:e2e`（lockfile 同步）。
+  - `.github/workflows/ci.yml` docker job 扩展：构建 backend/frontend 镜像 → 起 `e2e-backend`（LLM_MODE=mock、独立卷）等 ready → `seed.py` → 起 `e2e-frontend`（127.0.0.1:13000）→ `npm ci` + `playwright install --with-deps chromium` → `npx playwright test`。
+- 验证：本地 `npx playwright test --list` 通过、`npm run build` 通过；E2E 实跑由 CI 转绿确认。
+- 价值：把此前多次“人工点出来的前端回归”（axios/Pinia、路由复用、会话列表刷新）从人工回归收进自动化门禁。
+- 日期：2026-09-07
+---
+
 > 自 M1 起，每个 Step 完成后按模板追加。

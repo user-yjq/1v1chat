@@ -6,6 +6,7 @@ LLM Provider（方案 C：单次生成）
 """
 import hashlib
 import json
+import threading
 import time
 
 import httpx
@@ -58,6 +59,113 @@ class MockLLM(BaseLLM):
     # extract_json 继承 BaseLLM：返回 None → Analyzer 走规则降级
 
 
+class LLMCircuitOpenError(RuntimeError):
+    """上游熔断打开（R-A2）：本轮直接走引擎降级话术，不再发起网络调用。"""
+
+
+class LLMBudgetExceededError(RuntimeError):
+    """全局并发预算不足（R-A2）：本轮直接降级，避免请求堆积压垮上游。"""
+
+
+# 熔断状态机（进程内单例；asyncio 单线程 + 锁兜底多线程）
+_state = {"mode": "closed", "failures": 0, "open_until": 0.0}
+_state_lock = threading.Lock()
+_inflight = 0
+_inflight_lock = threading.Lock()
+
+
+def _now_s() -> float:
+    return time.monotonic()
+
+
+def _threshold() -> int:
+    try:
+        return max(1, int(getattr(settings, "LLM_CIRCUIT_FAIL_THRESHOLD", 3)))
+    except (TypeError, ValueError):
+        return 3
+
+
+def _cooldown_s() -> float:
+    try:
+        return max(0.0, float(getattr(settings, "LLM_CIRCUIT_COOLDOWN_S", 30.0)))
+    except (TypeError, ValueError):
+        return 30.0
+
+
+def reset_llm_guards() -> None:
+    """测试用：清空熔断状态与并发计数器。"""
+    global _inflight
+    with _state_lock:
+        _state.update({"mode": "closed", "failures": 0, "open_until": 0.0})
+    with _inflight_lock:
+        _inflight = 0
+
+
+def _breaker_precheck() -> LLMCircuitOpenError | None:
+    """放行返回 None；熔断窗口内返回异常（并计 rejected）。"""
+    with _state_lock:
+        if _state["mode"] == "open" and _now_s() < _state["open_until"]:
+            metrics.record_circuit("rejected")
+            return LLMCircuitOpenError("LLM 上游熔断中，本轮降级")
+        if _state["mode"] == "open":
+            # 冷却结束 → 半开：放行探活请求
+            _state["mode"] = "half_open"
+    return None
+
+
+def _breaker_report(ok: bool) -> None:
+    """按调用结果推进状态机：closed 计连续失败；half_open 探活成败闭环。"""
+    with _state_lock:
+        if _state["mode"] == "half_open":
+            if ok:
+                _state["mode"] = "closed"
+                _state["failures"] = 0
+                metrics.record_circuit("closed")
+            else:
+                _state["mode"] = "open"
+                _state["open_until"] = _now_s() + _cooldown_s()
+                metrics.record_circuit("opened")
+            return
+        if ok:
+            _state["failures"] = 0
+            return
+        _state["failures"] += 1
+        if _state["failures"] >= _threshold():
+            _state["mode"] = "open"
+            _state["open_until"] = _now_s() + _cooldown_s()
+            metrics.record_circuit("opened")
+            _state["failures"] = 0
+
+
+class _LlmBudget:
+    """全局并发预算护栏：限制同时进行的 LLM 请求数（默认 8）。
+
+    用计数而非 asyncio.Semaphore：检查与自增之间无 await，天然原子；
+    超出上限立即抛预算异常（不排队），由引擎走降级话术。
+    """
+
+    def __init__(self) -> None:
+        self._acquired = False
+
+    async def __aenter__(self):
+        global _inflight
+        limit = max(1, int(getattr(settings, "LLM_MAX_CONCURRENCY", 8)))
+        with _inflight_lock:
+            if _inflight >= limit:
+                metrics.record_circuit("rejected")
+                raise LLMBudgetExceededError("LLM 并发预算不足，本轮降级")
+            _inflight += 1
+        self._acquired = True
+        return self
+
+    async def __aexit__(self, *exc_info):
+        global _inflight
+        if self._acquired:
+            with _inflight_lock:
+                _inflight -= 1
+        return False
+
+
 class RemoteLLM(BaseLLM):
     def __init__(self, api_key: str, base_url: str, model: str, temperature: float = 0.95,
                  max_tokens: int = 300, timeout: float = 30.0):
@@ -86,6 +194,10 @@ class RemoteLLM(BaseLLM):
         return (data["choices"][0]["message"]["content"] or "").strip()
 
     async def generate(self, system: str, user: str) -> str:
+        """单次生成：熔断预检 → 并发预算 → 计时调用 → 结果回报状态机。"""
+        pre = _breaker_precheck()
+        if pre is not None:
+            raise pre
         payload = {
             "model": self.model,
             "messages": [
@@ -96,7 +208,16 @@ class RemoteLLM(BaseLLM):
             "max_tokens": self.max_tokens,
             "stream": False,
         }
-        return await _record_llm_call("chat", self._post(payload))
+        try:
+            async with _LlmBudget():
+                result = await _record_llm_call("chat", self._post(payload))
+        except (LLMCircuitOpenError, LLMBudgetExceededError):
+            raise
+        except Exception:
+            _breaker_report(ok=False)
+            raise
+        _breaker_report(ok=True)
+        return result
 
     async def extract_json(self, system: str, user: str) -> dict | None:
         """尝试 JSON 模式结构化输出；解析失败一律返回 None（不抛异常）。"""
@@ -110,13 +231,21 @@ class RemoteLLM(BaseLLM):
             "max_tokens": 800,
             "stream": False,
         }
+        pre = _breaker_precheck()
+        if pre is not None:
+            return None
         started = time.perf_counter()
         try:
-            content = await self._post(payload)
+            async with _LlmBudget():
+                content = await self._post(payload)
+        except (LLMCircuitOpenError, LLMBudgetExceededError):
+            return None
         except Exception:
             metrics.record_llm_call("json", time.perf_counter() - started, ok=False)
+            _breaker_report(ok=False)
             return None
         metrics.record_llm_call("json", time.perf_counter() - started, ok=True)
+        _breaker_report(ok=True)
         start, end = content.find("{"), content.rfind("}")
         if start < 0 or end <= start:
             return None

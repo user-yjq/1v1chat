@@ -49,6 +49,11 @@ class Settings(BaseSettings):
     ADMIN_BOOTSTRAP_USERNAME: str = ""
     ADMIN_BOOTSTRAP_PASSWORD: str = ""
 
+    # LLM 熔断与预算护栏（M5.5 R-A2）：上游连续失败熔断 + 全局并发上限
+    LLM_CIRCUIT_FAIL_THRESHOLD: int = 3     # 连续失败达到该值即熔断（开）
+    LLM_CIRCUIT_COOLDOWN_S: float = 30.0    # 熔断冷却后进入半开探活
+    LLM_MAX_CONCURRENCY: int = 8            # 全局并发上限；超出直接降级（不排队）
+
     # 合规与披露（M4.7 R-F1/F2/F3）
     COMPLIANCE_FLAG_ENABLED: bool = True    # engine2 合规 flags 记录总开关
     DISCLOSURE_ENABLED: bool = True         # 前端“对面是 AI 角色扮演实验”披露开关

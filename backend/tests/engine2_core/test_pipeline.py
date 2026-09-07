@@ -4,6 +4,7 @@ from types import SimpleNamespace
 import pytest
 from engine2.pipeline import run_turn
 from engine2.schema import TurnContext, default_state_v2
+from llm.provider import LLMCircuitOpenError
 
 
 class _FakeLLM:
@@ -27,6 +28,24 @@ def _ctx(message, persona=None):
         llm=_FakeLLM(),
         config=SimpleNamespace(turn_timeout_s=5, guard_enabled=True, state_facts_max=20),
     )
+
+
+class _RaisingLLM(_FakeLLM):
+    async def generate(self, system, user):
+        raise LLMCircuitOpenError("upstream open")
+
+
+@pytest.mark.asyncio
+async def test_pipeline_llm_circuit_open_falls_back():
+    """R-A2：熔断异常在 actor 边界被吞掉 → 本轮自动走降级话术（不暴露 AI、不 500）。"""
+    ctx = _ctx("你在干嘛呢")
+    ctx.llm = _RaisingLLM()
+    state, actions, trace = await run_turn(ctx)
+    act_node = next(n for n in trace["nodes"] if n["name"] == "act")
+    assert act_node["ok"] is True  # actor 内部已捕获 LLM 异常，节点不视为失败
+    assert len(actions) == 1 and actions[0]["kind"] == "reply_text"
+    from engine2.defaults import FALLBACK_LINES, pick_fallback
+    assert actions[0]["content"] in FALLBACK_LINES or actions[0]["content"] == pick_fallback(ctx.user_message)
 
 
 @pytest.mark.asyncio

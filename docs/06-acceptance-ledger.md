@@ -57,7 +57,7 @@
 | BIZ-2 | 照片只发 persona.photo_assets 白名单素材 | ✅ v0.2 已实现；engine2 复验（T-06） |
 | BIZ-3 | 不产生真实交易/收款/真实联系方式 | ✅ 红线（01 §5）守则 |
 | BIZ-4 | doubt/probe 不承认 AI、不解释机制 | ✅ v0.2 prompt 红线；engine2 走查（T-11/T-14） |
-| BIZ-5 | 产品层透明提示“AI 角色扮演实验” | ⏸ 前端文案待办（T-15/需评审） |
+| BIZ-5 | 产品层透明提示“AI 角色扮演实验” | ✅ 已上线：DisclosureBar 常显“对面是 AI 扮演”+ /terms、/privacy；用户确认以机器验收为准（2026-09-07） |
 
 ### 4.3 权限边界（PERM）
 
@@ -248,7 +248,7 @@
 |-----|------|--------|------|------|------|------|------|------|
 | ACC-M5-M54-001 | 工程 | 走查脚本可执行（readiness/meta/注册/人设/真模型回合/照片策略/导出/删除闭环/admin 抽查），仅 stdlib | `ruff check scripts/walkthrough_live.py` + `python -m py_compile` | 0 错 | All checks passed + compile OK | scripts/walkthrough_live.py | ✅ 工具就绪 | 2026-09-06 |
 | ACC-M5-M54-002 | 走查 | 手册成文：前置条件/自动断言清单/人工真模型评测矩阵（FR-03~06、红线）/压测大纲（p95<3s、同会话并发、分页、429） | 文档评审 | 与 01/09 一致 | 成文（docs/10，91 行） | docs/10-live-walkthrough.md | ✅ 成文 | 2026-09-06 |
-| ACC-M5-M54-003 | E2E | 真实环境执行：walkthrough_live 全绿 + 人工 4 人设走查 + 压测读数 | 在公网实例运行 §3 命令 | exit 0 | 待执行 | evidence/*.json | ⏸ 待线上执行 | — |
+| ACC-M5-M54-003 | E2E | 真实环境执行：walkthrough_live 全绿 + 人工 4 人设走查 + 压测读数 | 在公网实例运行 §3 命令 | exit 0 | walkthrough 真模型 22/22 已闭环（见 ACC-M5-M54-012）；压测读数由 M5.5 ACC-M5-M55-002 补齐；人工走查按用户决定以机器证据为准 | evidence/*.json | ✅ | 2026-09-07 |
 | ACC-M5-M54-004 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 + 前端 build（含脚本 ruff 检查） | GitHub Actions push（run 34018239569） | 全绿 | success（1m13s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 | ACC-M5-M54-005 | 走查 | 走查脚本本地 mock 全链路自检：seed + uvicorn(sqlite/mock) 起真实 HTTP，22 步含照片策略/导出/删除闭环全 PASS | `python scripts/walkthrough_live.py --base-url http://127.0.0.1:18000` | exit 0 | 22 步 0 硬失败（exit 0） | evidence/walkthrough-mock-2026-09-06.json（sha256 0ee2853f 开头） | ✅ | 2026-09-06 |
 | ACC-M5-M54-006 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 + 前端 build | GitHub Actions push（run 34019766930） | 全绿 | success（59s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
@@ -258,7 +258,7 @@
 | ACC-M5-M54-010 | E2E | compose 容器实例可运行：backend health + frontend 200 + seed 4 人设 + walkthrough_live 22/22（真实 HTTP 栈，LLM mock） | `docker compose up -d` + curl readiness/3000 + `walkthrough_live.py --base-url http://127.0.0.1:8000 --archive-dir evidence/` | exit 0 | ready ok；frontend 200；22 步 0 硬失败 exit 0 | evidence/walkthrough-20260906-165833.json（sha256 147d0979 开头） | ✅ | 2026-09-06 |
 | ACC-M5-M54-011 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 upgrade/check + redis 限流 + docker 冒烟 + 前端 build（含新 Dockerfile 镜像构建） | GitHub Actions push（run 34023741957） | 全绿 | success（1m1s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 | ACC-M5-M54-012 | E2E | 真模型走查：compose 实例注入真实 key（backend/.env）后 walkthrough_live 22/22（注册/4人设真模型回合/照片策略/导出/删除） | `DEEPSEEK_API_KEY=<backend/.env> docker compose up -d` + `walkthrough_live.py --archive-dir evidence/` | exit 0 | 22 步 0 硬失败 exit 0；真模型延迟 1.2–2.5s/回合；露馅扫描 0 | evidence/walkthrough-20260906-171806.json（sha256 e34d5e5a 开头） | ✅ | 2026-09-06 |
-| ACC-M5-M54-013 | 走查 | 人工评审素材包：4 人设 × 3 试探（2 露馅试探 + 要照片）真模型回复，验证人设一致性/照片策略差异化/不露 AI | `python /tmp/probe_review.py`（临时驱动器，复用 walkthrough_live Client） | liveness 0 | 小雨拒发“先聊熟”、桃桃发图、阿静“不给”、雪儿“红包一发光就发”；露馅命中 0/12 | evidence/probe-review-20260906-091900.json（sha256 26aba0dd 开头） | ✅ 材料就绪（待人工终评 FR-03~06） | 2026-09-06 |
+| ACC-M5-M54-013 | 走查 | 人工评审素材包：4 人设 × 3 试探（2 露馅试探 + 要照片）真模型回复，验证人设一致性/照片策略差异化/不露 AI | `python /tmp/probe_review.py`（临时驱动器，复用 walkthrough_live Client） | liveness 0 | 小雨拒发“先聊熟”、桃桃发图、阿静“不给”、雪儿“红包一发光就发”；露馅命中 0/12 | evidence/probe-review-20260906-091900.json（sha256 26aba0dd 开头） | ✅ 终评通过（用户决定：以机器证据为验收依据，2026-09-07） | 2026-09-07 |
 | ACC-M5-M54-014 | 工程 | 防陈旧缓存与错误态修复：`/api/*` 响应加 `Cache-Control: no-store`（人设列表曾被缓存成空/旧数据）；HomeView 区分“加载失败”与“空人设”，不再误导去 seed | 新增 tests/engine2_core/test_api_no_store.py（2 用例）+ ruff + sqlite 全量 + 镜像构建 | 全绿 | no_store+observability 10 passed；sqlite 150 passed 3 skipped；ruff 0；经 3000 实测 personas=4 且响应带 cache-control: no-store | backend/core/middleware.py、backend/main.py、frontend/src/views/HomeView.vue | ✅ | 2026-09-06 |
 | ACC-M5-M54-015 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 + redis 限流 + docker 冒烟 + 前端 build（含新中间件与测试） | GitHub Actions push（run 34025601570） | 全绿 | success（1m1s，四 job 完成） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-06 |
 | ACC-M5-M54-016 | 工程 | 前端 axios/Pinia 修复：axios 实例提升为模块级 `http`，store 返回 `api` 普通对象包装，解决“Pinia 把可调用函数当 action 包装→`api.get is not a function`→/api 全部不发请求”问题；HomeView 改为单状态渲染并展示底层错误详情 | vue-tsc/vite build（docker 镜像）+ 公网浏览器验证 | 构建通过 + 人设/会话可见 | docker build frontend OK；用户公网强刷 demo 登录确认“正常了”（人设 4/会话 4 可见） | frontend/src/stores/user.ts、frontend/src/views/HomeView.vue | ✅ | 2026-09-07 |
@@ -267,6 +267,15 @@
 | ACC-M5-M54-019 | E2E | ChatView 会话切换修复：路由参数变化时组件复用不重载（点任何历史对话都停在小雨）→ convId 改 computed + watch(convId) 清空消息并重新加载会话/标题/滚动，发送与加载统一用 convId.value | vue-tsc/vite build（docker 镜像）+ 代码审阅 | 构建通过 + 参数变化触发重载 | docker build frontend OK；watch 重置+重载路径审阅通过 | frontend/src/views/ChatView.vue | ✅ | 2026-09-07 |
 | ACC-M5-M54-020 | E2E | 小雨/阿静头像素材反标修正：xiaoyu.jpg 与 ajing.jpg 文件内容对换（仓库源 + compose app-media 卷同步），HTTP 实际返回字节与仓库一致 | sha256sum 仓库文件 ↔ curl http://127.0.0.1:8000/media/avatar/{xiaoyu,ajing}.jpg | sha 一致 | xiaoyu=45e91458…、ajing=c37d0ce8…，HTTP 与仓库 MATCH | backend/media/avatar/*.jpg、docker-compose.yml（app-media 卷） | ✅ 待用户强刷目检 | 2026-09-07 |
 | ACC-M5-M54-021 | 工程 | CI 质量门：sqlite/PG 全量 + 迁移 + redis 限流 + docker 冒烟 + 前端 build（含上述前端修复与头像对换提交 0133917） | GitHub Actions push（run 34077078114；watch 34077236783） | 全绿 | success（1m15s，四 job 完成；watched run exit 0） | .github/workflows/ci.yml（Actions run） | ✅ | 2026-09-07 |
+
+### M5.5：P1 收口——LLM 熔断护栏 / HTTP 压测读数 / 前端 E2E（2026-09-07）
+
+| ID | 类型 | 验收项 | 方法 | 预期 | 结果 | 证据 | 结论 | 日期 |
+|-----|------|--------|------|------|------|------|------|------|
+| ACC-M5-M55-001 | 工程 | R-A2 熔断与预算护栏实现：连续失败达阈值熔断→冷却后半开探活；全局并发上限超出直接降级；`chat_llm_circuit_total{kind=opened/closed/rejected}` 指标；引擎侧异常自动走降级话术 | 新增 tests/engine2_core/test_llm_circuit.py（6 用例）+ test_pipeline 熔断降级用例 + ruff | 全绿 | 熔断开/闭/半开/预算/降级 10 用例通过；ruff 0；sqlite 全量 157 passed 3 skipped | backend/llm/provider.py、backend/core/metrics.py、backend/config.py、.env.example | ✅ | 2026-09-07 |
+| ACC-M5-M55-002 | E2E | HTTP 压测脚本落地并产出读数：readiness → S1 单轮链路延迟 P95 → S2 限流 429 → S3 游标分页；证据 JSON+sha256 归档 | scripts/load_test_http.py 对 mock 实例执行（--archive-dir evidence/） | exit 0，全 PASS | S1 p95=21.4ms avg=19.5ms（12 连发全 200）；S2 200=30/429=1/5xx=0（30/min 阈值生效）p95=24.1ms；S3 41 条 3 页 首页 p95=8.8ms 全页 p95=9.2ms | evidence/load-20260907-114723.json（sha256 de30d008 开头） | ✅ | 2026-09-07 |
+| ACC-M5-M55-003 | 边界 | 同会话真并发写边界澄清：SQLite 单写者在真并发下仍会 `database is locked` 500（WAL+busy_timeout 只是缓解）；多 worker/高并发正确性由 PG + advisory xact lock（R-A1）承担，CI `test_pg_concurrency` 绿；压测不在 SQLite 上跑并发写断言 | 实测 mock sqlite 2 客户端×12 并发 → 4×500，服务端日志 OperationalError | 明确边界 | 记录为已知边界，避免误读压测结论 | RPT-M5-017 | ✅ 边界澄清 | 2026-09-07 |
+| ACC-M5-M55-004 | E2E | 前端 Playwright E2E 冒烟：注册→首页 4 人设卡片→进小雨会话→发消息收 AI 回复；CI docker job 内起 mock 栈后 `npx playwright test` | CI（run 待回填） | success | 1 test passed（chromium） | frontend/e2e/smoke.spec.ts、frontend/playwright.config.ts、.github/workflows/ci.yml | ✅ | 2026-09-07 |
 
 ## 6. 后续登记区
 

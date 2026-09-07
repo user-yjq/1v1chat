@@ -88,7 +88,7 @@ jobs:
         working-directory: frontend
 
   docker:
-    name: Docker image build + readiness smoke
+    name: Docker build + smoke + E2E (Playwright)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -113,3 +113,37 @@ jobs:
           curl -fsS http://127.0.0.1:18000/api/health
           curl -fsS http://127.0.0.1:18000/api/metrics | grep -q '^chat_http_requests_total'
           docker rm -f 1v1chat-smoke >/dev/null
+      - name: Start E2E stack (backend mock + seed + frontend)
+        run: |
+          docker network create 1v1chat-e2e >/dev/null 2>&1 || true
+          docker run -d --name e2e-backend --network 1v1chat-e2e --network-alias backend \
+            -e LLM_MODE=mock -e JWT_SECRET=e2e-secret-not-prod \
+            -v e2e-data:/app/backend/data 1v1chat-backend:ci
+          code=""
+          for _ in $(seq 1 40); do
+            code=$(docker exec e2e-backend curl -s -o /dev/null -w '%{http_code}' \
+                     http://127.0.0.1:8000/api/health/ready || true)
+            [ "$code" = "200" ] && break
+            sleep 1
+          done
+          [ "$code" = "200" ] || { echo "e2e backend 未就绪"; exit 1; }
+          docker exec e2e-backend python seed.py
+          docker run -d --name e2e-frontend --network 1v1chat-e2e -p 13000:3000 1v1chat-frontend:ci
+          code=""
+          for _ in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:13000/ || true)
+            [ "$code" = "200" ] && break
+            sleep 1
+          done
+          [ "$code" = "200" ] || { echo "e2e frontend 未就绪"; exit 1; }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend deps + Playwright chromium
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund && npx playwright install --with-deps chromium
+      - name: Run E2E smoke (Playwright)
+        working-directory: frontend
+        run: npx playwright test --reporter=list

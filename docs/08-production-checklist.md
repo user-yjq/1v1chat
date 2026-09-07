@@ -18,7 +18,7 @@
 | ID | 缺口 | 现状（证据） | 加固建议 | 优先级 | 状态 | 验收方式 |
 |----|------|--------------|----------|--------|------|----------|
 | R-A1 | 会话锁只在单进程内存内 | `backend/engine2/pipeline.py` 模块级 `_LOCKS`；多 uvicorn worker 各自持有，并发会互相覆盖 state（违反 NFR-PERF-3） | 切 PostgreSQL 后用行级锁/唯一写者 | P0 | ✅ | PG advisory xact lock（routers/chat.py）；PG 并发测试通过 |
-| R-A2 | LLM 上游无熔断与预算护栏 | `llm/provider.py` 仅 tenacity 3 次指数退避；上游持续故障时每轮仍等超时再走兜底 | 加错误率熔断（阈值+半开）、按用户/全局并发与 token 预算；超限直接走降级话术 | P1 | ⏸ | 注入故障：熔断后 P95 回落、兜底率有指标 |
+| R-A2 | LLM 上游无熔断与预算护栏 | `llm/provider.py` 仅 tenacity 3 次指数退避；上游持续故障时每轮仍等超时再走兜底 | 加错误率熔断（阈值+半开）、按用户/全局并发与 token 预算；超限直接走降级话术 | P1 | ✅ | M5.5 已实现：连续失败阈值熔断→冷却半开探活；全局并发上限超出直接降级；`chat_llm_circuit_total` 指标；引擎自动降级话术；单测+回归绿（ACC-M5-M55-001）。遗留：错误率口径仍为“连续失败计数”非窗口滑动错误率 |
 | R-A3 | 限流为进程内滑动窗口 | `backend/core/ratelimit.py`；多 worker 各自计数（NFR-SEC-3 在多实例下失效） | 网关层或 Redis 计数；保留本进程实现作为单机回退 | P1 | ✅ | REDIS_URL 生效（INCR+EXPIRE 61s），Redis 故障自动降级进程内 |
 | R-A4 | 无任务队列/背压 | 聊天为同步 HTTP 单轮处理；长轮询/后续 WebSocket 无队列 | v0.5 先不引队列；接入 WS 或重负载时再评估（进程内 asyncio.Queue + DB 乐观锁） | P2 | ⏸ | 负载模型压测通过后评审 |
 

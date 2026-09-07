@@ -11,6 +11,7 @@ _llm_failed: dict[str, int] = {}
 _llm_latency_sum: dict[str, float] = {}
 _llm_latency_count: dict[str, int] = {}
 _guard: dict[str, int] = {}
+_circuit: dict[str, int] = {}
 _http_total: dict[str, int] = {}
 _http_dur_sum: dict[str, float] = {}
 _http_count: dict[str, int] = {}
@@ -24,6 +25,7 @@ def reset() -> None:
         _llm_latency_sum.clear()
         _llm_latency_count.clear()
         _guard.clear()
+        _circuit.clear()
         _http_total.clear()
         _http_dur_sum.clear()
         _http_count.clear()
@@ -41,6 +43,12 @@ def record_llm_call(kind: str, seconds: float, ok: bool) -> None:
             _bump(_llm_failed, kind)
         _bump(_llm_latency_sum, kind, seconds)
         _bump(_llm_latency_count, kind)
+
+
+def record_circuit(event: str) -> None:
+    """熔断/预算事件计数（R-A2）：opened/closed/rejected（含并发预算拒绝）。"""
+    with _LOCK:
+        _bump(_circuit, event)
 
 
 def record_guard(*, blocked: bool = False, rewrote: bool = False,
@@ -85,6 +93,8 @@ def render() -> str:
         out += _metric_lines("chat_llm_latency_seconds_count", "LLM 调用样本数", "summary", _llm_latency_count)
         out += _metric_lines("chat_guard_events_total", "Guard 事件（blocked/rewrote/fallback/sampled）",
                              "counter", _guard)
+        out += _metric_lines("chat_llm_circuit_total", "LLM 熔断/预算事件（opened/closed/rejected）",
+                             "counter", _circuit)
         if _http_total:
             out.append("# TYPE chat_http_requests_total counter")
             out.append("# HELP chat_http_requests_total HTTP 请求数")
