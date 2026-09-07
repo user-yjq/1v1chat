@@ -1,7 +1,7 @@
 <template>
   <div class="flex h-screen bg-gray-100">
     <!-- 侧边栏 -->
-    <aside class="w-72 bg-white border-r flex flex-col shadow-sm">
+    <aside v-if="isShellPage" class="w-72 bg-white border-r flex flex-col shadow-sm">
       <div class="p-4 border-b flex items-center gap-3">
         <div class="w-10 h-10 bg-brand-500 rounded-full flex items-center justify-center text-white font-bold text-lg">1v1</div>
         <div>
@@ -56,15 +56,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useConversationStore } from '@/stores/conversation'
 import AccountDataDialog from '@/components/AccountDataDialog.vue'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 const convStore = useConversationStore()
+
+// 登录/注册/协议/隐私页为独立整页，不带聊天壳（侧边栏）
+const isShellPage = computed(
+  () => !['login', 'register', 'terms', 'privacy'].includes(String(route.name)),
+)
 
 const conversations = ref<any[]>([])
 const currentConvId = ref<number | null>(null)
@@ -111,4 +117,14 @@ onMounted(async () => {
   }
   await loadConversations()
 })
+
+// 登录跳转/新建会话/切换会话后都要刷新左侧列表，避免“对话突然没了”
+watch(
+  () => route.fullPath,
+  async () => {
+    if (userStore.token && isShellPage.value) {
+      await loadConversations()
+    }
+  },
+)
 </script>

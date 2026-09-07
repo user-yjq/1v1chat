@@ -59,7 +59,12 @@ function policyLabel(policy: any) {
 }
 
 async function startWith(p: any) {
-  const conv = await convStore.createConversation(p.id)
+  // 已有该人设的会话则续接最近一条（避免“又要重新聊”/越建越多空会话）
+  const convs: any[] = await convStore.fetchConversations()
+  const existed = [...convs]
+    .filter((c) => c.persona_id === p.id)
+    .sort((a, b) => String(b.last_message_at || '').localeCompare(String(a.last_message_at || '')))[0]
+  const conv = existed ?? (await convStore.createConversation(p.id))
   router.push(`/chat/${conv.id}`)
 }
 
